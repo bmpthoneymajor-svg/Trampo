@@ -1,4 +1,4 @@
-const API_URL = 'https://trampo.up.railway.app';
+const API_URL = 'https://trampo.up.railway.app'.replace(/\/$/, '');
 // CALCULAR TOTAL
 function calcularTotal() {
     let total = 0;
