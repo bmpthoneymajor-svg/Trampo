@@ -1,4 +1,4 @@
-const API_URL = 'https://btdesign3d.up.railway.app';
+const API_URL = 'https://trampo-production-273d.up.railway.app/';
 // CALCULAR TOTAL
 function calcularTotal() {
     let total = 0;
