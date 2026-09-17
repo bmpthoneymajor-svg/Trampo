@@ -24,17 +24,31 @@ app.use(express.static(path.join(__dirname)));
     MERCADOPAGO_PUBLIC_KEY=APP_USR-...
 */
 const environment = (process.env.MERCADOPAGO_ENVIRONMENT || 'production').toLowerCase();
-const productionAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-const productionPublicKey = process.env.MERCADOPAGO_PUBLIC_KEY;
 
-const accessToken = productionAccessToken;
-const publicKey = productionPublicKey;
+let accessToken;
+let publicKey;
+
+if (environment === 'sandbox') {
+  accessToken = process.env.MERCADOPAGO_TEST_ACCESS_TOKEN;
+  publicKey = process.env.MERCADOPAGO_PUBLIC_KEY_TEST;
+} else {
+  accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  publicKey = process.env.MERCADOPAGO_PUBLIC_KEY;
+}
 
 if (!accessToken) {
   throw new Error(
-    `MERCADOPAGO_${environment === 'production' ? 'ACCESS_TOKEN' : 'PUBLIC_KEY'} não definido. ` +
-    'Configure o token correto antes de iniciar o servidor.'
+    `Access Token do Mercado Pago não configurado para o ambiente: ${environment}`
   );
+}
+
+console.log(`Ambiente Mercado Pago: ${environment}`);
+console.log(`Access Token configurado: ${accessToken.substring(0, 12)}...`);
+
+if (publicKey) {
+  console.log('Public Key configurada.');
+} else {
+  console.warn('Public Key NÃO configurada.');
 }
 
 console.log(`Ambiente Mercado Pago: ${environment}`);
