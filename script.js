@@ -222,8 +222,22 @@ async function initMercadoPago() {
         console.log('Iniciando Mercado Pago...');
 
         // Buscar chave pública do servidor
-        const response = await fetch(`${API_URL}/api/public-key`);
-        const data = await response.json();
+       const urlPublicKey = `${API_URL}/api/public-key`;
+
+        console.log('API_URL:', API_URL);
+        console.log('Chamando:', urlPublicKey);
+
+        const response = await fetch(urlPublicKey);
+
+        console.log('Status:', response.status);
+        console.log('URL final:', response.url);
+        console.log('Content-Type:', response.headers.get('content-type'));
+
+        const texto = await response.text();
+
+        console.log('Resposta recebida:', texto);
+
+        const data = JSON.parse(texto);
 
         console.log('Chave pública recebida:', data.publicKey ? 'OK' : 'ERRO');
 
