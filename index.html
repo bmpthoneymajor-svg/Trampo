@@ -1,707 +1,1203 @@
-// ======================================================
-// BT DESIGN - SCRIPT.JS
-// ======================================================
+<!DOCTYPE html>
+<html lang="pt-BR">
 
-const API_URL = 'https://trampo.up.railway.app';
+<head>
 
+    <meta charset="UTF-8">
 
-// ======================================================
-// VARIÁVEIS PAYPAL
-// ======================================================
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-let paypalSdk = null;
-let paypalSession = null;
-let paypalInicializado = false;
-let paypalInicializando = false;
+    <meta
+        name="description"
+        content="BT Design - Design Gráfico, Modelagem 3D e Edição de Vídeo."
+    >
 
+    <title>BT Design | Portfólio</title>
 
-// ======================================================
-// CALCULAR TOTAL
-// ======================================================
+    <link
+        rel="stylesheet"
+        href="styles.css"
+    >
 
-function calcularTotal() {
+</head>
 
-    let total = 0;
 
-    const linhas = document.querySelectorAll('.servico-row');
+<body>
 
-    linhas.forEach(linha => {
 
-        const checkbox =
-            linha.querySelector('.servico-checkbox');
+    <!-- ==================================================
+         LOADER
+    =================================================== -->
 
-        const quantidade =
-            linha.querySelector('.quantidade');
+    <div
+        id="page-loader"
+        class="page-loader"
+    >
 
-        const preco =
-            linha.querySelector('.preco');
+        <div class="page-loader-bar"></div>
 
-        if (!checkbox || !checkbox.checked) {
-            return;
-        }
+    </div>
 
-        const qtd = Number(quantidade?.value || 0);
-        const valor = Number(preco?.value || 0);
 
-        if (
-            Number.isFinite(qtd) &&
-            Number.isFinite(valor)
-        ) {
-            total += qtd * valor;
-        }
 
-    });
+    <!-- ==================================================
+         HEADER
+    =================================================== -->
 
-    total = Number(total.toFixed(2));
+    <header class="site-header">
 
-    const totalElemento =
-        document.getElementById('total');
+        <div class="container header-inner">
 
-    if (totalElemento) {
-        totalElemento.textContent =
-            total.toFixed(2);
-    }
+            <a
+                href="#inicio"
+                class="brand-link"
+            >
 
-    return total;
-}
+                <img
+                    src="imagens/Logo/Logo BT.png"
+                    alt="Logo BT Design"
+                    class="logo"
+                >
 
+                <span class="brand-text">
+                    BT Design
+                </span>
 
-// ======================================================
-// ATUALIZAR TOTAL
-// ======================================================
+            </a>
 
-document.addEventListener('input', function () {
-    calcularTotal();
-});
 
-document.addEventListener('change', function () {
-    calcularTotal();
-});
+            <nav>
 
+                <ul>
 
-// ======================================================
-// CRIAR PEDIDO PAYPAL
-// ======================================================
+                    <li>
+                        <a href="#inicio">
+                            Início
+                        </a>
+                    </li>
 
-async function criarPedidoPayPal() {
+                    <li>
+                        <a href="#orcamento">
+                            Orçamento
+                        </a>
+                    </li>
 
-    const total = calcularTotal();
+                    <li>
+                        <a href="#portfolio">
+                            Portfólio
+                        </a>
+                    </li>
 
-    if (!total || total <= 0) {
-        throw new Error(
-            'Selecione um serviço e informe um preço válido.'
-        );
-    }
+                    <li>
+                        <a href="#sobre">
+                            Sobre
+                        </a>
+                    </li>
 
-    console.log(
-        'Criando pedido PayPal:',
-        total
-    );
+                </ul>
 
-    const resposta = await fetch(
-        `${API_URL}/api/paypal/create-order`,
-        {
-            method: 'POST',
+            </nav>
 
-            headers: {
-                'Content-Type': 'application/json'
-            },
+        </div>
 
-            body: JSON.stringify({
-                valor: total.toFixed(2)
-            })
-        }
-    );
+    </header>
 
-    const dados = await resposta.json();
 
-    if (!resposta.ok) {
 
-        console.error(
-            'Erro PayPal:',
-            dados
-        );
+    <!-- ==================================================
+         CONTEÚDO
+    =================================================== -->
 
-        throw new Error(
-            dados.erro ||
-            'Erro ao criar pedido PayPal.'
-        );
-    }
+    <main>
 
-    if (!dados.id) {
-        throw new Error(
-            'O PayPal não retornou o ID do pedido.'
-        );
-    }
 
-    console.log(
-        'Pedido criado:',
-        dados.id
-    );
 
-    return dados.id;
-}
+        <!-- ==================================================
+             INÍCIO
+        =================================================== -->
 
+        <section
+            id="inicio"
+            class="page active"
+        >
 
-// ======================================================
-// CAPTURAR PAGAMENTO
-// ======================================================
+            <div class="container">
 
-async function capturarPedidoPayPal(orderID) {
+                <div class="hero-grid">
 
-    console.log(
-        'Capturando pedido:',
-        orderID
-    );
 
-    const resposta = await fetch(
-        `${API_URL}/api/paypal/capture-order`,
-        {
-            method: 'POST',
+                    <div class="hero-copy">
 
-            headers: {
-                'Content-Type': 'application/json'
-            },
+                        <span class="eyebrow">
+                            Design Gráfico · Modelagem 3D · Vídeo
+                        </span>
 
-            body: JSON.stringify({
-                orderID: orderID
-            })
-        }
-    );
 
-    const dados = await resposta.json();
+                        <h1>
+                            Transformo ideias em design que vende,
+                            conecta e impressiona.
+                        </h1>
 
-    console.log(
-        'Resposta da captura:',
-        dados
-    );
 
-    if (!resposta.ok) {
+                        <p>
+                            Crio identidades visuais, artes e projetos
+                            gráficos pensados para destacar sua marca
+                            no mercado e atrair o público certo.
+                        </p>
 
-        throw new Error(
-            dados.erro ||
-            'Erro ao capturar pagamento.'
-        );
-    }
 
-    if (dados.status === 'COMPLETED') {
+                        <p>
+                            Mais do que estética, o design certo
+                            comunica, posiciona e gera resultados
+                            com estratégia, criatividade e atenção
+                            ao detalhe.
+                        </p>
 
-        window.location.href =
-            '/sucesso';
 
-        return;
-    }
+                        <a
+                            class="btn"
+                            href="#orcamento"
+                        >
+                            Simular orçamento
+                        </a>
 
-    alert(
-        'Pagamento processado com status: ' +
-        dados.status
-    );
-}
+                    </div>
 
 
-// ======================================================
-// MOSTRAR ERRO PAYPAL
-// ======================================================
 
-function mostrarErroPayPal(mensagem) {
+                    <div class="hero-details">
 
-    console.error(
-        'PayPal:',
-        mensagem
-    );
 
-    let erro =
-        document.getElementById(
-            'paypal-error'
-        );
+                        <div class="tools-card">
 
-    if (!erro) {
+                            <h2>
+                                Ferramentas que eu uso
+                            </h2>
 
-        erro =
-            document.createElement('div');
 
-        erro.id =
-            'paypal-error';
+                            <div class="tool-badges">
 
-        erro.style.marginTop =
-            '15px';
+                                <span>
+                                    Adobe
+                                </span>
 
-        erro.style.padding =
-            '12px';
+                                <span>
+                                    Maya
+                                </span>
 
-        erro.style.borderRadius =
-            '8px';
+                                <span>
+                                    ZBrush
+                                </span>
 
-        erro.style.background =
-            '#ffe5e5';
+                            </div>
 
-        erro.style.color =
-            '#a00000';
+                        </div>
 
-        const container =
-            document.getElementById(
-                'paypal-button-container'
-            );
 
-        if (container) {
-            container.appendChild(erro);
-        }
-    }
 
-    if (erro) {
+                        <div class="service-summary">
 
-        erro.textContent =
-            mensagem;
 
-        erro.style.display =
-            'block';
-    }
-}
+                            <article>
 
+                                <h3>
+                                    Design Gráfico
+                                </h3>
 
-// ======================================================
-// INICIALIZAR PAYPAL
-// ======================================================
+                                <p>
+                                    Identidade visual, diagramação,
+                                    banners e artes para mídia digital
+                                    e impressa.
+                                </p>
 
-async function inicializarPayPal() {
+                            </article>
 
-    if (paypalInicializado) {
-        return;
-    }
 
-    if (paypalInicializando) {
-        return;
-    }
+                            <article>
 
-    paypalInicializando = true;
+                                <h3>
+                                    Modelagem 3D
+                                </h3>
 
-    try {
+                                <p>
+                                    Criação e reparo de modelos 3D,
+                                    renderização e arquivos prontos
+                                    para impressão.
+                                </p>
 
-        // Verificar SDK
-        if (!window.paypal) {
+                            </article>
 
-            throw new Error(
-                'O SDK do PayPal ainda não foi carregado.'
-            );
-        }
 
+                            <article>
 
-        console.log(
-            'Inicializando PayPal...'
-        );
+                                <h3>
+                                    Edição de Vídeo
+                                </h3>
 
+                                <p>
+                                    Vídeos personalizados, aberturas
+                                    animadas e peças dinâmicas para
+                                    redes sociais.
+                                </p>
 
-        // --------------------------------------------------
-        // CLIENT ID
-        // --------------------------------------------------
+                            </article>
 
-        const resposta =
-            await fetch(
-                `${API_URL}/api/paypal/client-id`,
-                {
-                    cache: 'no-store'
-                }
-            );
 
-        const dados =
-            await resposta.json();
+                        </div>
 
-        if (!resposta.ok) {
+                    </div>
 
-            throw new Error(
-                dados.erro ||
-                'Não foi possível obter o Client ID.'
-            );
-        }
+                </div>
 
-        if (!dados.clientId) {
 
-            throw new Error(
-                'Client ID do PayPal não encontrado.'
-            );
-        }
 
+                <img
+                    class="img-canto-esquerdo"
+                    src="imagens/Portfolio/Projeto 11/p11 img 1.png"
+                    alt="Detalhe do projeto 11"
+                >
 
-        console.log(
-            'Client ID recebido.'
-        );
 
+                <img
+                    class="img-canto-direito"
+                    src="imagens/Portfolio/Projeto 7/p7 img 1.png"
+                    alt="Detalhe do projeto 7"
+                >
 
-        // --------------------------------------------------
-        // CRIAR INSTÂNCIA
-        // --------------------------------------------------
 
-        paypalSdk =
-            await window.paypal.createInstance({
+            </div>
 
-                clientId:
-                    dados.clientId,
+        </section>
 
-                components: [
-                    'paypal-payments'
-                ],
 
-                pageType:
-                    'checkout'
-            });
 
+        <!-- ==================================================
+             ORÇAMENTO
+        =================================================== -->
 
-        console.log(
-            'Instância PayPal criada.'
-        );
+        <section
+            id="orcamento"
+            class="page"
+        >
 
+            <div class="container">
 
-        // --------------------------------------------------
-        // VERIFICAR ELEGIBILIDADE
-        // --------------------------------------------------
 
-        const elegibilidade =
-            await paypalSdk.findEligibleMethods({
-                currencyCode: 'BRL'
-            });
+                <div class="section-head">
 
+                    <span class="eyebrow">
+                        Orçamento
+                    </span>
 
-        console.log(
-            'Elegibilidade:',
-            elegibilidade
-        );
 
+                    <h1>
+                        Calcule o valor do seu projeto agora.
+                    </h1>
 
-        if (
-            !elegibilidade ||
-            !elegibilidade.isEligible('paypal')
-        ) {
 
-            throw new Error(
-                'O PayPal não está disponível para esta conta/configuração.'
-            );
-        }
+                    <p>
+                        Escolha os serviços que você precisa,
+                        ajuste a quantidade e informe o preço.
+                        O valor total será calculado automaticamente.
+                    </p>
 
 
-        // --------------------------------------------------
-        // LOCALIZAR BOTÃO
-        // --------------------------------------------------
+                    <p>
+                        OBS: Alguns serviços podem possuir
+                        descontos automáticos em quantidades maiores.
+                    </p>
 
-        const container =
-            document.getElementById(
-                'paypal-button-container'
-            );
+                </div>
 
-        if (!container) {
 
-            throw new Error(
-                'Container do PayPal não encontrado.'
-            );
-        }
 
+                <!-- ==================================================
+                     FORMULÁRIO
+                =================================================== -->
 
-        // Limpar apenas o container PayPal
-        container.innerHTML = '';
+                <form
+                    id="form-orcamento"
+                    class="orcamento-grid"
+                    onsubmit="return false;"
+                >
 
 
-        // --------------------------------------------------
-        // CRIAR BOTÃO
-        // --------------------------------------------------
+                    <!-- LAYOUT -->
 
-        const botao =
-            document.createElement(
-                'paypal-button'
-            );
+                    <div class="servico-row">
 
-        botao.id =
-            'paypal-btn';
+                        <label>
 
-        botao.type =
-            'pay';
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="layout"
+                            >
 
-        botao.hidden =
-            false;
+                            Layout de sites
 
+                        </label>
 
-        container.appendChild(
-            botao
-        );
 
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Layout de sites"
+                        >
 
-        // --------------------------------------------------
-        // CRIAR SESSÃO
-        // --------------------------------------------------
 
-        paypalSession =
-            paypalSdk.createPayPalOneTimePaymentSession({
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Layout de sites"
+                        >
 
-                onApprove:
-                    async ({ orderId }) => {
 
-                        console.log(
-                            'Pagamento aprovado:',
-                            orderId
-                        );
+                        <input
+                            type="text"
+                            placeholder="Ex: Landing page, e-commerce..."
+                            class="observacao"
+                            aria-label="Detalhes Layout de sites"
+                        >
 
-                        return await capturarPedidoPayPal(
-                            orderId
-                        );
-                    },
+                    </div>
 
 
-                onCancel:
-                    () => {
 
-                        console.log(
-                            'Pagamento cancelado.'
-                        );
+                    <!-- ANIMAÇÃO -->
 
-                    },
+                    <div class="servico-row">
 
+                        <label>
 
-                onError:
-                    (erro) => {
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="animacao"
+                            >
 
-                        console.error(
-                            'Erro PayPal:',
-                            erro
-                        );
+                            Aberturas / Animações
 
-                        mostrarErroPayPal(
-                            'Ocorreu um erro durante o pagamento.'
-                        );
-                    }
+                        </label>
 
-            });
 
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Aberturas"
+                        >
 
-        // --------------------------------------------------
-        // CLIQUE
-        // --------------------------------------------------
 
-        botao.addEventListener(
-            'click',
-            async function () {
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Aberturas"
+                        >
 
-                try {
 
-                    const total =
-                        calcularTotal();
+                        <input
+                            type="text"
+                            placeholder="Ex: intro, duração..."
+                            class="observacao"
+                            aria-label="Detalhes Aberturas"
+                        >
 
-                    if (
-                        !total ||
-                        total <= 0
-                    ) {
+                    </div>
 
-                        throw new Error(
-                            'O valor do orçamento é inválido.'
-                        );
-                    }
 
 
-                    console.log(
-                        'Iniciando pagamento:',
-                        total
-                    );
+                    <!-- VÍDEO -->
 
+                    <div class="servico-row">
 
-                    // IMPORTANTE:
-                    // não usar await aqui.
-                    // O PayPal recomenda passar
-                    // a Promise diretamente para start().
-                    const pedidoPromise =
-                        criarPedidoPayPal();
+                        <label>
 
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="video"
+                            >
 
-                    await paypalSession.start(
+                            Vídeos personalizados
 
-                        {
-                            presentationMode:
-                                'auto'
-                        },
+                        </label>
 
-                        pedidoPromise
 
-                    );
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Vídeos"
+                        >
 
-                } catch (erro) {
 
-                    console.error(
-                        'Erro ao iniciar pagamento:',
-                        erro
-                    );
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Vídeos"
+                        >
 
-                    mostrarErroPayPal(
-                        erro.message ||
-                        'Não foi possível iniciar o pagamento.'
-                    );
-                }
 
-            }
-        );
+                        <input
+                            type="text"
+                            placeholder="Ex: estilo, duração..."
+                            class="observacao"
+                            aria-label="Detalhes Vídeos"
+                        >
 
+                    </div>
 
-        paypalInicializado =
-            true;
 
 
-        console.log(
-            '================================'
-        );
+                    <!-- RESTAURAÇÃO -->
 
-        console.log(
-            'PAYPAL PRONTO'
-        );
+                    <div class="servico-row">
 
-        console.log(
-            '================================'
-        );
+                        <label>
 
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="restauracao"
+                            >
 
-    } catch (erro) {
+                            Restauração de Fotos
 
-        console.error(
-            'Erro ao inicializar PayPal:',
-            erro
-        );
+                        </label>
 
-        mostrarErroPayPal(
-            erro.message
-        );
 
-    } finally {
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Restauração"
+                        >
 
-        paypalInicializando =
-            false;
-    }
-}
 
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Restauração"
+                        >
 
-// ======================================================
-// PAGAR AGORA
-// ======================================================
 
-async function pagarAgora() {
+                        <input
+                            type="text"
+                            placeholder="Ex: foto antiga, danos..."
+                            class="observacao"
+                            aria-label="Detalhes Restauração"
+                        >
 
-    const total =
-        calcularTotal();
+                    </div>
 
 
-    if (!total || total <= 0) {
 
-        alert(
-            'Selecione pelo menos um serviço e informe o preço.'
-        );
+                    <!-- REPARO 3D -->
 
-        return;
-    }
+                    <div class="servico-row">
 
+                        <label>
 
-    // Mostrar métodos de pagamento
-    const paymentMethods =
-        document.getElementById(
-            'payment-methods'
-        );
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="reparo3d"
+                            >
 
-    if (paymentMethods) {
+                            Reparo de modelos 3D
+                            (.STL, OBJ, FBX, DAE)
 
-        paymentMethods.classList.remove(
-            'hidden'
-        );
+                        </label>
 
-        paymentMethods.style.display =
-            'block';
-    }
 
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Reparo 3D"
+                        >
 
-    // --------------------------------------------------
-    // PROCURAR CONTAINER PAYPAL
-    // --------------------------------------------------
 
-    let container =
-        document.getElementById(
-            'paypal-button-container'
-        );
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Reparo 3D"
+                        >
 
 
-    // --------------------------------------------------
-    // SE NÃO EXISTIR, CRIAR
-    // --------------------------------------------------
+                        <input
+                            type="text"
+                            placeholder="Ex: tipo de modelo..."
+                            class="observacao"
+                            aria-label="Detalhes Reparo 3D"
+                        >
 
-    if (!container) {
+                    </div>
 
-        const paymentMethodsElement =
-            document.getElementById(
-                'payment-methods'
-            );
 
-        if (!paymentMethodsElement) {
 
-            alert(
-                'Área de pagamento não encontrada.'
-            );
+                    <!-- MODELAGEM 3D -->
 
-            return;
-        }
+                    <div class="servico-row">
 
+                        <label>
 
-        const caixa =
-            document.createElement('div');
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="modelagem3d"
+                            >
 
-        caixa.className =
-            'payment-method';
+                            Criação de modelos 3D
+                            (.STL, OBJ, FBX, DAE)
 
+                        </label>
 
-        caixa.innerHTML = `
 
-            <h3>Pagamento com PayPal</h3>
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Modelagem 3D"
+                        >
 
-            <p>
-                Total:
-                <strong>
-                    R$ ${total.toFixed(2)}
-                </strong>
-            </p>
 
-            <div
-                id="paypal-button-container"
-                style="margin-top:20px;"
-            ></div>
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Modelagem 3D"
+                        >
 
-        `;
 
+                        <input
+                            type="text"
+                            placeholder="Ex: tipo de modelo..."
+                            class="observacao"
+                            aria-label="Detalhes Modelagem 3D"
+                        >
 
-        paymentMethodsElement.appendChild(
-            caixa
-        );
+                    </div>
 
 
-        container =
-            document.getElementById(
-                'paypal-button-container'
-            );
-    }
 
+                    <!-- RENDER -->
 
-    // --------------------------------------------------
-    // INICIALIZAR
-    // --------------------------------------------------
+                    <div class="servico-row">
 
-    await inicializarPayPal();
-}
+                        <label>
 
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="render"
+                            >
 
-// ======================================================
-// INICIALIZAÇÃO
-// ======================================================
+                            Renderização 3D
 
-document.addEventListener(
-    'DOMContentLoaded',
-    function () {
+                        </label>
 
-        console.log(
-            'BT Design carregado.'
-        );
 
-        calcularTotal();
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Renderização"
+                        >
 
-    }
-);
 
-<script src="https://www.paypal.com/web-sdk/v6/core"></script>
-<script src="script.js"></script>
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Renderização"
+                        >
+
+
+                        <input
+                            type="text"
+                            placeholder="Ex: qualidade, cenário..."
+                            class="observacao"
+                            aria-label="Detalhes Renderização"
+                        >
+
+                    </div>
+
+
+
+                    <!-- DIAGRAMAÇÃO -->
+
+                    <div class="servico-row">
+
+                        <label>
+
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="diagramacao"
+                            >
+
+                            Diagramação
+
+                        </label>
+
+
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Diagramação"
+                        >
+
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Diagramação"
+                        >
+
+
+                        <input
+                            type="text"
+                            placeholder="Ex: 30 páginas, A5..."
+                            class="observacao"
+                            aria-label="Detalhes Diagramação"
+                        >
+
+                    </div>
+
+
+
+                    <!-- IMAGEM -->
+
+                    <div class="servico-row">
+
+                        <label>
+
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="imagem"
+                            >
+
+                            Criação de imagens personalizada
+
+                        </label>
+
+
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Imagens"
+                        >
+
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Imagens"
+                        >
+
+
+                        <input
+                            type="text"
+                            placeholder="Ex: estilo, uso..."
+                            class="observacao"
+                            aria-label="Detalhes Imagens"
+                        >
+
+                    </div>
+
+
+
+                    <!-- CARTÃO -->
+
+                    <div class="servico-row">
+
+                        <label>
+
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="cartao"
+                            >
+
+                            Cartão de visita
+
+                        </label>
+
+
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Cartões"
+                        >
+
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Cartões"
+                        >
+
+
+                        <input
+                            type="text"
+                            placeholder="Ex: frente/verso..."
+                            class="observacao"
+                            aria-label="Detalhes Cartão"
+                        >
+
+                    </div>
+
+
+
+                    <!-- PANFLETO -->
+
+                    <div class="servico-row">
+
+                        <label>
+
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="panfleto"
+                            >
+
+                            Panfletos
+
+                        </label>
+
+
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Panfletos"
+                        >
+
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Panfletos"
+                        >
+
+
+                        <input
+                            type="text"
+                            placeholder="Ex: tamanho, cor..."
+                            class="observacao"
+                            aria-label="Detalhes Panfletos"
+                        >
+
+                    </div>
+
+
+
+                    <!-- FOLDER -->
+
+                    <div class="servico-row">
+
+                        <label>
+
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="folder"
+                            >
+
+                            Folder
+
+                        </label>
+
+
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Folder"
+                        >
+
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Folder"
+                        >
+
+
+                        <input
+                            type="text"
+                            placeholder="Ex: dobra, formato..."
+                            class="observacao"
+                            aria-label="Detalhes Folder"
+                        >
+
+                    </div>
+
+
+
+                    <!-- BANNER -->
+
+                    <div class="servico-row">
+
+                        <label>
+
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="banner"
+                            >
+
+                            Banner
+
+                        </label>
+
+
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade Banner"
+                        >
+
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço Banner"
+                        >
+
+
+                        <input
+                            type="text"
+                            placeholder="Ex: tamanho, uso..."
+                            class="observacao"
+                            aria-label="Detalhes Banner"
+                        >
+
+                    </div>
+
+
+
+                    <!-- IMAGEM RENDERIZADA -->
+
+                    <div class="servico-row">
+
+                        <label>
+
+                            <input
+                                type="checkbox"
+                                class="servico-checkbox"
+                                data-key="imagem-renderizada"
+                            >
+
+                            Imagem Renderizada
+
+                        </label>
+
+
+                        <input
+                            type="number"
+                            min="1"
+                            value="1"
+                            class="quantidade"
+                            aria-label="Quantidade imagem renderizada"
+                        >
+
+
+                        <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="0.00"
+                            class="preco"
+                            aria-label="Preço imagem renderizada"
+                        >
+
+
+                        <input
+                            type="text"
+                            placeholder="Ex: tamanho, uso..."
+                            class="observacao"
+                            aria-label="Detalhes imagem renderizada"
+                        >
+
+                    </div>
+
+
+                </form>
+
+
+
+                <!-- ==================================================
+                     TOTAL
+                =================================================== -->
+
+                <div id="total-container">
+
+                    <span>
+                        Total estimado:
+                    </span>
+
+
+                    <strong>
+                        R$
+                        <span id="total">
+                            0.00
+                        </span>
+                    </strong>
+
+                </div>
+
+
+
+                <!-- ==================================================
+                     BOTÃO CONTINUAR
+                =================================================== -->
+
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    onclick="pagarAgora()"
+                >
+                    Finalizar orçamento e pagar
+                </button>
+
+
+
+                <!-- ==================================================
+                     PAGAMENTO
+                =================================================== -->
+
+                <div
+                    id="payment-methods"
+                    class="payment-methods hidden"
+                >
+
+                    <h2>
+                        Pagamento
+                    </h2>
+
+
+                    <div class="payment-method">
+
+                        <h3>
+                            Pagamento seguro com PayPal
+                        </h3>
+
+
+                        <p>
+                            Após clicar no botão abaixo,
+                            você será direcionado para o
+                            checkout seguro do PayPal.
+                        </p>
+
+
+                        <div
+                            id="paypal-status"
+                            style="
+                                margin: 15px 0;
+                                font-size: 14px;
+                            "
+                        >
+                            Preparando pagamento...
+                        </div>
+
+
+                        <!-- PAYPAL -->
+
+                        <div
+                            id="paypal-button-container"
+                        >
+
+                            <paypal-button
+                                id="paypal-btn"
+                                type="pay"
+                                hidden
+                            ></paypal-button>
+
+                        </div>
+
+
+                        <!-- ERRO -->
+
+                        <div
+                            id="paypal-error"
+                            style="
+                                display:none;
+                                margin-top:15px;
+                                padding:12px;
+                                border-radius:8px;
+                            "
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ==================================================
+             PORTFÓLIO
+             
+             MANTENHA AQUI O CONTEÚDO ORIGINAL
+             DA SUA SEÇÃO PORTFÓLIO.
+        =================================================== -->
+
+        <section
+            id="portfolio"
+            class="page"
+        >
+
+            <div class="container">
+
+                <!--
+                    COLE AQUI O CONTEÚDO ORIGINAL
+                    DO SEU PORTFÓLIO.
+
+                    Não é necessário alterar essa parte
+                    para o PayPal funcionar.
+                -->
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ==================================================
+             SOBRE
+             
+             MANTENHA AQUI O CONTEÚDO ORIGINAL
+             DA SUA SEÇÃO SOBRE.
+        =================================================== -->
+
+        <section
+            id="sobre"
+            class="page"
+        >
+
+            <div class="container">
+
+                <!--
+                    COLE AQUI O CONTEÚDO ORIGINAL
+                    DA SUA SEÇÃO SOBRE.
+
+                    Não é necessário alterar essa parte
+                    para o PayPal funcionar.
+                -->
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+
+    <!-- ==================================================
+         WHATSAPP
+    =================================================== -->
+
+    <a
+        href="https://wa.me/5521991984365?text=Ol%C3%A1%2C%20gostaria%20de%20fazer%20um%20or%C3%A7amento%20!!"
+        class="whatsapp-float"
+        target="_blank"
+        rel="noopener noreferrer"
+    >
+
+        <img
+            src="imagens/Logo/Sapp.png"
+            alt="WhatsApp"
+        >
+
+    </a>
+
+
+
+    <!-- ==================================================
+         PAYPAL SDK V6
+    =================================================== -->
+
+    <script
+        async
+        src="https://www.paypal.com/web-sdk/v6/core"
+        onload="onPayPalLoaded()"
+    ></script>
+
+
+    <!-- ==================================================
+         SEU JAVASCRIPT
+    =================================================== -->
+
+    <script src="script.js"></script>
+
+
+</body>
+
+</html>
