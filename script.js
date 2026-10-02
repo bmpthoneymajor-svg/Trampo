@@ -3,8 +3,7 @@
 // PAYPAL V6
 // ======================================================
 
-const API_URL = 'https://trampo.up.railway.app'.replace(/\/$/, '');
-
+const API_URL = 'https://trampo.up.railway.app';
 
 // ======================================================
 // VARIÁVEIS
@@ -21,7 +20,7 @@ let ultimoTotal = 0;
 
 
 // ======================================================
-// PREÇOS / ORÇAMENTO
+// SERVIÇOS SELECIONADOS
 // ======================================================
 
 function obterServicosSelecionados() {
@@ -35,11 +34,17 @@ function obterServicosSelecionados() {
             return;
         }
 
-        const nome = row.querySelector('label')?.innerText.trim() || 'Serviço';
+        const nome =
+            row.querySelector('label')?.innerText.trim() || 'Serviço';
 
-        const quantidadeInput = row.querySelector('.quantidade');
-        const precoInput = row.querySelector('.preco');
-        const observacaoInput = row.querySelector('.observacao');
+        const quantidadeInput =
+            row.querySelector('.quantidade');
+
+        const precoInput =
+            row.querySelector('.preco');
+
+        const observacaoInput =
+            row.querySelector('.observacao');
 
         const quantidade =
             Number(quantidadeInput?.value || 1);
@@ -133,6 +138,7 @@ document.addEventListener('input', function (event) {
 
 });
 
+
 document.addEventListener('change', function (event) {
 
     if (
@@ -147,7 +153,7 @@ document.addEventListener('change', function (event) {
 
 
 // ======================================================
-// LOADING DO PAYPAL
+// LOADING PAYPAL
 // ======================================================
 
 function mostrarLoadingPayPal() {
@@ -173,7 +179,7 @@ function esconderLoadingPayPal() {
 
 
 // ======================================================
-// ERROS DO PAYPAL
+// ERROS PAYPAL
 // ======================================================
 
 function mostrarErroPayPal(mensagem) {
@@ -240,6 +246,7 @@ async function obterPayPalClientToken() {
     try {
         data = await response.json();
     } catch (erro) {
+
         throw new Error(
             'O servidor retornou uma resposta inválida.'
         );
@@ -295,6 +302,7 @@ async function criarPedidoPayPal(valor) {
     try {
         data = await response.json();
     } catch (erro) {
+
         throw new Error(
             'Resposta inválida do servidor ao criar pedido.'
         );
@@ -388,8 +396,7 @@ async function capturarPedidoPayPal(orderID) {
 
         esconderLoadingPayPal();
 
-        window.location.href =
-            '/sucesso';
+        window.location.href = '/sucesso';
 
         return;
     }
@@ -424,6 +431,7 @@ async function inicializarPayPal() {
 
         mostrarLoadingPayPal();
 
+
         // --------------------------------------------------
         // VERIFICAR SDK
         // --------------------------------------------------
@@ -457,7 +465,7 @@ async function inicializarPayPal() {
 
 
         // --------------------------------------------------
-        // CRIAR INSTÂNCIA PAYPAL
+        // CRIAR INSTÂNCIA
         // --------------------------------------------------
 
         console.log(
@@ -474,9 +482,7 @@ async function inicializarPayPal() {
                 ],
 
                 pageType: 'checkout'
-
             });
-
 
         console.log(
             'Instância PayPal criada com sucesso.'
@@ -484,22 +490,19 @@ async function inicializarPayPal() {
 
 
         // --------------------------------------------------
-        // VERIFICAR MÉTODOS ELEGÍVEIS
+        // VERIFICAR ELEGIBILIDADE
         // --------------------------------------------------
 
         const eligibility =
             await paypalSdk.findEligibleMethods({
 
                 currencyCode: 'BRL'
-
             });
-
 
         console.log(
             'Métodos elegíveis:',
             eligibility
         );
-
 
         if (
             !eligibility ||
@@ -528,7 +531,6 @@ async function inicializarPayPal() {
             );
         }
 
-
         container.innerHTML = '';
 
 
@@ -546,7 +548,6 @@ async function inicializarPayPal() {
 
         paypalButton.type =
             'pay';
-
 
         container.appendChild(
             paypalButton
@@ -607,7 +608,7 @@ async function inicializarPayPal() {
 
 
         // --------------------------------------------------
-        // CLIQUE NO BOTÃO
+        // CLIQUE NO BOTÃO PAYPAL
         // --------------------------------------------------
 
         paypalButton.addEventListener(
@@ -621,7 +622,6 @@ async function inicializarPayPal() {
                     const totalAtual =
                         calcularTotal();
 
-
                     if (
                         !totalAtual ||
                         totalAtual <= 0
@@ -632,12 +632,10 @@ async function inicializarPayPal() {
                         );
                     }
 
-
                     console.log(
                         'Valor do pagamento:',
                         totalAtual
                     );
-
 
                     mostrarLoadingPayPal();
 
@@ -649,7 +647,7 @@ async function inicializarPayPal() {
                         );
 
 
-                    // Abrir checkout PayPal
+                    // Abrir checkout
                     await paypalSession.start(
 
                         {
@@ -675,7 +673,6 @@ async function inicializarPayPal() {
                         'Não foi possível abrir o PayPal.'
                     );
                 }
-
             }
         );
 
@@ -725,14 +722,13 @@ async function inicializarPayPal() {
 
 
 // ======================================================
-// FUNÇÃO PAGAR AGORA
+// PAGAR AGORA
 // ======================================================
 
-async function pagarAgora() {
+window.pagarAgora = async function () {
 
     const total =
         calcularTotal();
-
 
     if (!total || total <= 0) {
 
@@ -744,25 +740,31 @@ async function pagarAgora() {
     }
 
 
-    // Mostrar seção de pagamento
+    // --------------------------------------------------
+    // MOSTRAR PAGAMENTO
+    // --------------------------------------------------
+
     const paymentMethods =
         document.getElementById(
             'payment-methods'
         );
 
-    if (paymentMethods) {
+    if (!paymentMethods) {
 
-        paymentMethods.classList.remove(
-            'hidden'
+        console.error(
+            'Elemento #payment-methods não encontrado.'
         );
 
-        paymentMethods.style.display =
-            'block';
+        return;
     }
+
+    paymentMethods.classList.remove('hidden');
+
+    paymentMethods.style.display = 'block';
 
 
     // --------------------------------------------------
-    // CRIAR CONTAINER DO PAYPAL
+    // LOCALIZAR CONTAINER PAYPAL
     // --------------------------------------------------
 
     let paypalContainer =
@@ -771,46 +773,32 @@ async function pagarAgora() {
         );
 
 
+    // --------------------------------------------------
+    // CRIAR CONTAINER SE NÃO EXISTIR
+    // --------------------------------------------------
+
     if (!paypalContainer) {
 
-        const paymentSection =
-            document.getElementById(
-                'payment-methods'
-            );
-
-        if (!paymentSection) {
-
-            alert(
-                'Área de pagamento não encontrada.'
-            );
-
-            return;
-        }
-
-
         const paypalBox =
-            document.createElement(
-                'div'
-            );
+            document.createElement('div');
 
         paypalBox.className =
             'payment-method';
-
 
         paypalBox.innerHTML = `
 
             <h3>Pagamento com PayPal</h3>
 
-            <p>
+            <p class="payment-note">
                 Total do orçamento:
                 <strong>
-                    R$ ${total.toFixed(2)}
+                    R$ ${total.toFixed(2).replace('.', ',')}
                 </strong>
             </p>
 
             <div
                 id="paypal-button-container"
-                style="margin-top: 20px;"
+                style="margin-top:20px;"
             ></div>
 
             <div
@@ -824,13 +812,24 @@ async function pagarAgora() {
                 Processando pagamento...
             </div>
 
+            <div
+                id="paypal-error"
+                style="
+                    display:none;
+                    margin-top:15px;
+                    padding:12px;
+                    border-radius:8px;
+                    background:#ffe5e5;
+                    color:#a00000;
+                    font-size:14px;
+                "
+            ></div>
+
         `;
 
-
-        paymentSection.appendChild(
+        paymentMethods.appendChild(
             paypalBox
         );
-
 
         paypalContainer =
             document.getElementById(
@@ -840,7 +839,17 @@ async function pagarAgora() {
 
 
     // --------------------------------------------------
-    // INICIALIZAR
+    // ROLAR ATÉ PAGAMENTO
+    // --------------------------------------------------
+
+    paymentMethods.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+    });
+
+
+    // --------------------------------------------------
+    // INICIALIZAR PAYPAL
     // --------------------------------------------------
 
     try {
@@ -853,157 +862,91 @@ async function pagarAgora() {
             'Falha ao inicializar PayPal:',
             erro
         );
-
     }
-
-}
+};
 
 
 // ======================================================
-// INICIALIZAÇÃO DA PÁGINA
+// NAVEGAÇÃO DO SITE
 // ======================================================
 
 document.addEventListener(
     'DOMContentLoaded',
-    () => {
+    function () {
 
-        calcularTotal();
-
-        console.log(
-            'BT Design carregado.'
-        );
-
-    }
-
-
-);
-async function onPayPalLoaded() {
-    console.log('SDK PayPal carregado.');
-
-    try {
-        await inicializarPayPal();
-
-        const status =
-            document.getElementById('paypal-status');
-
-        if (status) {
-            status.textContent =
-                'PayPal pronto para pagamento.';
-        }
-
-    } catch (erro) {
-
-        console.error(
-            'Erro ao carregar PayPal:',
-            erro
-        );
-
-        const status =
-            document.getElementById('paypal-status');
-
-        if (status) {
-            status.textContent =
-                'Não foi possível carregar o PayPal.';
-        }
-    }
-}
-// ======================================================
-// NAVEGAÇÃO ENTRE PÁGINAS / SEÇÕES
-// ======================================================
-
-document.addEventListener('DOMContentLoaded', function () {
-
-    const links =
-        document.querySelectorAll(
-            '.site-header nav a[href^="#"]'
-        );
-
-    const paginas =
-        document.querySelectorAll(
-            'main .page'
-        );
-
-
-    function mostrarPagina(id) {
-
-        const pagina =
-            document.getElementById(id);
-
-        if (!pagina) {
-            return;
-        }
-
-
-        // Esconde todas as páginas
-        paginas.forEach(function (item) {
-
-            item.classList.remove('active');
-
-        });
-
-
-        // Mostra a página selecionada
-        pagina.classList.add('active');
-
-
-        // Atualiza o endereço sem recarregar
-        if (
-            window.location.hash !== '#' + id
-        ) {
-
-            history.pushState(
-                null,
-                '',
-                '#' + id
+        const links =
+            document.querySelectorAll(
+                'a[href^="#"]'
             );
 
+        const paginas =
+            document.querySelectorAll(
+                'main .page'
+            );
+
+
+        function mostrarPagina(id) {
+
+            const pagina =
+                document.getElementById(id);
+
+            if (!pagina) {
+                return;
+            }
+
+
+            // Esconder todas
+            paginas.forEach(function (item) {
+
+                item.classList.remove(
+                    'active'
+                );
+
+            });
+
+
+            // Mostrar selecionada
+            pagina.classList.add(
+                'active'
+            );
+
+
+            // Atualizar URL
+            if (
+                window.location.hash !==
+                '#' + id
+            ) {
+
+                history.pushState(
+                    null,
+                    '',
+                    '#' + id
+                );
+            }
+
+
+            // Voltar ao topo
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
         }
 
 
-        // Volta para o topo
-        window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-        });
+        // --------------------------------------------------
+        // TODOS OS LINKS INTERNOS
+        // --------------------------------------------------
 
-    }
-
-
-    // Clique no menu
-    links.forEach(function (link) {
-
-        link.addEventListener(
-            'click',
-            function (event) {
-
-                event.preventDefault();
-
-                const id =
-                    link.getAttribute('href')
-                        .replace('#', '');
-
-                mostrarPagina(id);
-
-            }
-        );
-
-    });
-
-
-    // Botões internos que usam #orcamento,
-    // #portfolio, #sobre etc.
-    document
-        .querySelectorAll(
-            'a[href^="#"]'
-        )
-        .forEach(function (link) {
+        links.forEach(function (link) {
 
             link.addEventListener(
                 'click',
                 function (event) {
 
                     const href =
-                        link.getAttribute('href');
+                        link.getAttribute(
+                            'href'
+                        );
 
                     if (
                         !href ||
@@ -1012,49 +955,68 @@ document.addEventListener('DOMContentLoaded', function () {
                         return;
                     }
 
-
                     const id =
                         href.substring(1);
 
                     const pagina =
-                        document.getElementById(id);
+                        document.getElementById(
+                            id
+                        );
 
                     if (!pagina) {
                         return;
                     }
 
-
                     event.preventDefault();
 
                     mostrarPagina(id);
-
                 }
             );
 
         });
 
 
-    // --------------------------------------------------
-    // ABRIR PÁGINA PELO HASH
-    // --------------------------------------------------
+        // --------------------------------------------------
+        // ABRIR PELO HASH
+        // --------------------------------------------------
 
-    function abrirPaginaPeloHash() {
+        function abrirPaginaPeloHash() {
 
-        let id =
-            window.location.hash
-                .replace('#', '');
+            let id =
+                window.location.hash
+                    .replace('#', '');
 
+            if (!id) {
+                id = 'inicio';
+            }
 
-        if (!id) {
-            id = 'inicio';
-        }
+            const pagina =
+                document.getElementById(id);
 
+            if (!pagina) {
 
-        const pagina =
-            document.getElementById(id);
+                const inicio =
+                    document.getElementById(
+                        'inicio'
+                    );
 
+                if (inicio) {
 
-        if (pagina) {
+                    paginas.forEach(
+                        item =>
+                            item.classList.remove(
+                                'active'
+                            )
+                    );
+
+                    inicio.classList.add(
+                        'active'
+                    );
+                }
+
+                return;
+            }
+
 
             paginas.forEach(function (item) {
 
@@ -1064,58 +1026,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
             });
 
+
             pagina.classList.add(
                 'active'
             );
-
         }
 
+
+        abrirPaginaPeloHash();
+
+
+        window.addEventListener(
+            'hashchange',
+            abrirPaginaPeloHash
+        );
+
     }
+);
 
 
-    // Executa ao carregar
-    abrirPaginaPeloHash();
+// ======================================================
+// SDK PAYPAL CARREGADO
+// ======================================================
 
+window.onPayPalLoaded = function () {
 
-    // Executa quando o hash mudar
-    window.addEventListener(
-        'hashchange',
-        abrirPaginaPeloHash
+    console.log(
+        'SDK PayPal carregado.'
     );
 
-});
-window.pagarAgora = function () {
-    const totalElement = document.getElementById('total');
-
-    if (!totalElement) {
-        console.error('Elemento #total não encontrado.');
-        return;
-    }
-
-    const total = Number(
-        totalElement.textContent
-            .replace(',', '.')
-            .replace(/[^\d.-]/g, '')
-    );
-
-    if (!Number.isFinite(total) || total <= 0) {
-        alert('Selecione pelo menos um serviço e informe um preço válido.');
-        return;
-    }
-
-    const paymentMethods = document.getElementById('payment-methods');
-
-    if (!paymentMethods) {
-        console.error('Elemento #payment-methods não encontrado.');
-        return;
-    }
-
-    paymentMethods.classList.remove('hidden');
-
-    paymentMethods.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-    });
-
-    inicializarPayPal(total);
 };
