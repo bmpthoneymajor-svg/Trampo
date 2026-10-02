@@ -1,13 +1,13 @@
 // ======================================================
 // BT DESIGN - SCRIPT PRINCIPAL
-// PAYPAL + ORÇAMENTO
+// PAYPAL V6
 // ======================================================
 
 const API_URL = 'https://trampo.up.railway.app'.replace(/\/$/, '');
 
 
 // ======================================================
-// VARIÁVEIS GLOBAIS
+// VARIÁVEIS
 // ======================================================
 
 let paypalSdk = null;
@@ -21,423 +21,408 @@ let ultimoTotal = 0;
 
 
 // ======================================================
-// TABELA DE PREÇOS
+// PREÇOS / ORÇAMENTO
 // ======================================================
 
-const precosServicos = {
+function obterServicosSelecionados() {
+    const servicos = [];
 
-    layout: {
-        normal: 700,
-        desconto: 600
-    },
+    document.querySelectorAll('.servico-row').forEach(row => {
 
-    animacao: {
-        normal: 120,
-        desconto: 100
-    },
+        const checkbox = row.querySelector('.servico-checkbox');
 
-    video: {
-        normal: 120,
-        desconto: 100
-    },
-
-    restauracao: {
-        normal: 80,
-        desconto: 70
-    },
-
-    modelagem3d: {
-        normal: 170,
-        desconto: 145
-    },
-
-    reparo3d: {
-        normal: 120,
-        desconto: 90
-    },
-
-    render: {
-        normal: 200,
-        desconto: 150
-    },
-
-    imagem: {
-        normal: 30,
-        desconto: 30
-    },
-
-    cartao: {
-        normal: 80,
-        desconto: 80
-    },
-
-    panfleto: {
-        normal: 50,
-        desconto: 50
-    },
-
-    folder: {
-        normal: 80,
-        desconto: 80
-    },
-
-    banner: {
-        normal: 100,
-        desconto: 100
-    },
-
-    'Imagem Renderizada': {
-        normal: 130,
-        desconto: 130
-    }
-};
-
-
-// ======================================================
-// CALCULAR PREÇO DE UM SERVIÇO
-// ======================================================
-
-function calcularPrecoServico(key, quantidade) {
-
-    quantidade = Number(quantidade) || 1;
-
-    // --------------------------------------------------
-    // DIAGRAMAÇÃO
-    // --------------------------------------------------
-
-    if (key === 'diagramacao') {
-
-        if (quantidade >= 131) {
-            return 2.30;
+        if (!checkbox || !checkbox.checked) {
+            return;
         }
 
-        if (quantidade >= 81) {
-            return 3.70;
-        }
+        const nome = row.querySelector('label')?.innerText.trim() || 'Serviço';
 
-        if (quantidade >= 31) {
-            return 4.70;
-        }
+        const quantidadeInput = row.querySelector('.quantidade');
+        const precoInput = row.querySelector('.preco');
+        const observacaoInput = row.querySelector('.observacao');
 
-        if (quantidade >= 21) {
-            return 5.90;
-        }
+        const quantidade =
+            Number(quantidadeInput?.value || 1);
 
-        if (quantidade >= 10) {
-            return 6.80;
-        }
+        const preco =
+            Number(precoInput?.value || 0);
 
-        return 0;
-    }
+        const observacao =
+            observacaoInput?.value.trim() || '';
 
+        servicos.push({
+            key: checkbox.dataset.key || '',
+            nome,
+            quantidade,
+            preco,
+            observacao
+        });
+    });
 
-    // --------------------------------------------------
-    // SERVIÇOS NORMAIS
-    // --------------------------------------------------
-
-    const servico = precosServicos[key];
-
-    if (!servico) {
-        return 0;
-    }
-
-
-    // Para serviços com desconto por quantidade
-    if (quantidade > 1) {
-        return servico.desconto;
-    }
-
-    return servico.normal;
+    return servicos;
 }
 
 
 // ======================================================
-// CALCULAR TOTAL DO ORÇAMENTO
+// CALCULAR TOTAL
 // ======================================================
 
 function calcularTotal() {
 
-    const linhas = document.querySelectorAll('.servico-row');
-
     let total = 0;
 
+    document.querySelectorAll('.servico-row').forEach(row => {
 
-    linhas.forEach(linha => {
+        const checkbox =
+            row.querySelector('.servico-checkbox');
 
-        const checkbox = linha.querySelector('.servico-checkbox');
-        const quantidadeInput = linha.querySelector('.quantidade');
-        const precoInput = linha.querySelector('.preco');
-
-        if (!checkbox || !quantidadeInput || !precoInput) {
+        if (!checkbox || !checkbox.checked) {
             return;
         }
 
+        const quantidadeInput =
+            row.querySelector('.quantidade');
+
+        const precoInput =
+            row.querySelector('.preco');
 
         const quantidade =
-            Math.max(1, Number(quantidadeInput.value) || 1);
+            Number(quantidadeInput?.value || 0);
 
-        const key = checkbox.dataset.key;
+        const preco =
+            Number(precoInput?.value || 0);
 
-        if (!checkbox.checked) {
-
-            precoInput.value = '0.00';
-
-            return;
+        if (
+            Number.isFinite(quantidade) &&
+            Number.isFinite(preco) &&
+            quantidade > 0 &&
+            preco >= 0
+        ) {
+            total += quantidade * preco;
         }
-
-
-        const precoUnitario =
-            calcularPrecoServico(key, quantidade);
-
-
-        let subtotal = 0;
-
-
-        // Diagramação usa preço por página
-        if (key === 'diagramacao') {
-
-            subtotal = precoUnitario * quantidade;
-
-        } else {
-
-            subtotal = precoUnitario * quantidade;
-
-        }
-
-
-        precoInput.value =
-            precoUnitario.toFixed(2);
-
-
-        total += subtotal;
-
     });
 
+    total = Number(total.toFixed(2));
 
-    ultimoTotal = Number(total.toFixed(2));
-
-
-    // --------------------------------------------------
-    // ATUALIZAR TOTAL NA TELA
-    // --------------------------------------------------
+    ultimoTotal = total;
 
     const totalElement =
         document.getElementById('total');
 
     if (totalElement) {
-
         totalElement.textContent =
-            ultimoTotal.toFixed(2).replace('.', ',');
-
+            total.toFixed(2);
     }
 
-
-    // --------------------------------------------------
-    // ATUALIZAR TOTAL DO PAYPAL
-    // --------------------------------------------------
-
-    const paypalTotal =
-        document.getElementById('paypal-total');
-
-    if (paypalTotal) {
-
-        paypalTotal.textContent =
-            ultimoTotal.toFixed(2).replace('.', ',');
-
-    }
-
-
-    // --------------------------------------------------
-    // ATUALIZAR CAMPOS ANTIGOS CASO EXISTAM
-    // --------------------------------------------------
-
-    const transactionAmount =
-        document.getElementById('transactionAmount');
-
-    if (transactionAmount) {
-        transactionAmount.value =
-            ultimoTotal.toFixed(2);
-    }
-
-
-    const transactionAmountPix =
-        document.getElementById('transactionAmount-pix');
-
-    if (transactionAmountPix) {
-        transactionAmountPix.value =
-            ultimoTotal.toFixed(2);
-    }
-
-
-    const transactionAmountBoleto =
-        document.getElementById('transactionAmount-boleto');
-
-    if (transactionAmountBoleto) {
-        transactionAmountBoleto.value =
-            ultimoTotal.toFixed(2);
-    }
-
-
-    return ultimoTotal;
+    return total;
 }
 
 
 // ======================================================
-// MOSTRAR / ESCONDER MÉTODOS DE PAGAMENTO
+// ATUALIZAÇÃO AUTOMÁTICA DO TOTAL
 // ======================================================
 
-function mostrarPagamento() {
+document.addEventListener('input', function (event) {
 
-    const paymentMethods =
-        document.getElementById('payment-methods');
+    if (
+        event.target.classList.contains('quantidade') ||
+        event.target.classList.contains('preco')
+    ) {
+        calcularTotal();
+    }
 
-    if (!paymentMethods) {
-        console.error(
-            'Elemento #payment-methods não encontrado.'
+});
+
+document.addEventListener('change', function (event) {
+
+    if (
+        event.target.classList.contains('servico-checkbox') ||
+        event.target.classList.contains('quantidade') ||
+        event.target.classList.contains('preco')
+    ) {
+        calcularTotal();
+    }
+
+});
+
+
+// ======================================================
+// LOADING DO PAYPAL
+// ======================================================
+
+function mostrarLoadingPayPal() {
+
+    const loading =
+        document.getElementById('paypal-loading');
+
+    if (loading) {
+        loading.style.display = 'block';
+    }
+}
+
+
+function esconderLoadingPayPal() {
+
+    const loading =
+        document.getElementById('paypal-loading');
+
+    if (loading) {
+        loading.style.display = 'none';
+    }
+}
+
+
+// ======================================================
+// ERROS DO PAYPAL
+// ======================================================
+
+function mostrarErroPayPal(mensagem) {
+
+    let elemento =
+        document.getElementById('paypal-error');
+
+    if (!elemento) {
+
+        elemento =
+            document.createElement('div');
+
+        elemento.id = 'paypal-error';
+
+        elemento.style.marginTop = '15px';
+        elemento.style.padding = '12px';
+        elemento.style.borderRadius = '8px';
+        elemento.style.background = '#ffe5e5';
+        elemento.style.color = '#a00000';
+        elemento.style.fontSize = '14px';
+
+        const container =
+            document.getElementById(
+                'paypal-button-container'
+            );
+
+        if (container) {
+            container.parentNode.appendChild(elemento);
+        }
+    }
+
+    elemento.textContent = mensagem;
+    elemento.style.display = 'block';
+}
+
+
+function esconderErroPayPal() {
+
+    const elemento =
+        document.getElementById('paypal-error');
+
+    if (elemento) {
+        elemento.style.display = 'none';
+    }
+}
+
+
+// ======================================================
+// OBTER CLIENT TOKEN
+// ======================================================
+
+async function obterPayPalClientToken() {
+
+    const response = await fetch(
+        `${API_URL}/api/paypal/client-token`,
+        {
+            method: 'GET',
+            cache: 'no-store'
+        }
+    );
+
+    let data;
+
+    try {
+        data = await response.json();
+    } catch (erro) {
+        throw new Error(
+            'O servidor retornou uma resposta inválida.'
         );
+    }
+
+    if (!response.ok) {
+
+        console.error(
+            'Erro ao obter Client Token:',
+            data
+        );
+
+        throw new Error(
+            data.erro ||
+            'Não foi possível obter o Client Token do PayPal.'
+        );
+    }
+
+    if (!data.clientToken) {
+
+        throw new Error(
+            'O servidor não retornou o Client Token do PayPal.'
+        );
+    }
+
+    return data.clientToken;
+}
+
+
+// ======================================================
+// CRIAR PEDIDO NO BACKEND
+// ======================================================
+
+async function criarPedidoPayPal(valor) {
+
+    const response = await fetch(
+        `${API_URL}/api/paypal/create-order`,
+        {
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+                valor: Number(valor).toFixed(2)
+            })
+        }
+    );
+
+    let data;
+
+    try {
+        data = await response.json();
+    } catch (erro) {
+        throw new Error(
+            'Resposta inválida do servidor ao criar pedido.'
+        );
+    }
+
+    if (!response.ok) {
+
+        console.error(
+            'Erro ao criar pedido PayPal:',
+            data
+        );
+
+        throw new Error(
+            data.erro ||
+            'Não foi possível criar o pedido PayPal.'
+        );
+    }
+
+    if (!data.id) {
+
+        throw new Error(
+            'O PayPal não retornou o ID do pedido.'
+        );
+    }
+
+    console.log(
+        'Pedido PayPal criado:',
+        data.id
+    );
+
+    return data.id;
+}
+
+
+// ======================================================
+// CAPTURAR PEDIDO
+// ======================================================
+
+async function capturarPedidoPayPal(orderID) {
+
+    console.log(
+        'Capturando pedido PayPal:',
+        orderID
+    );
+
+    const response = await fetch(
+        `${API_URL}/api/paypal/capture-order`,
+        {
+            method: 'POST',
+
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+            body: JSON.stringify({
+                orderID
+            })
+        }
+    );
+
+    let data;
+
+    try {
+        data = await response.json();
+    } catch (erro) {
+
+        throw new Error(
+            'Resposta inválida do servidor ao capturar pagamento.'
+        );
+    }
+
+    if (!response.ok) {
+
+        console.error(
+            'Erro ao capturar pagamento:',
+            data
+        );
+
+        throw new Error(
+            data.erro ||
+            'Não foi possível concluir o pagamento.'
+        );
+    }
+
+    console.log(
+        'Resposta da captura:',
+        data
+    );
+
+    if (data.status === 'COMPLETED') {
+
+        esconderLoadingPayPal();
+
+        window.location.href =
+            '/sucesso';
 
         return;
     }
 
-    paymentMethods.classList.remove('hidden');
+    esconderLoadingPayPal();
 
-    paymentMethods.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-    });
+    mostrarErroPayPal(
+        `Pagamento processado com status: ${data.status}`
+    );
 }
 
 
 // ======================================================
-// PAGAR AGORA
-// ======================================================
-
-async function pagarAgora() {
-
-    try {
-
-        const total = calcularTotal();
-
-
-        if (!total || total <= 0) {
-
-            alert(
-                'Selecione pelo menos um serviço antes de continuar.'
-            );
-
-            return;
-        }
-
-
-        console.log(
-            'Total do orçamento:',
-            total
-        );
-
-
-        // Atualiza novamente o valor mostrado
-        const paypalTotal =
-            document.getElementById('paypal-total');
-
-        if (paypalTotal) {
-
-            paypalTotal.textContent =
-                total.toFixed(2).replace('.', ',');
-        }
-
-
-        mostrarPagamento();
-
-
-        // Inicializa o PayPal
-        await inicializarPayPal();
-
-
-    } catch (erro) {
-
-        console.error(
-            'Erro ao iniciar pagamento:',
-            erro
-        );
-
-        mostrarErroPayPal(
-            erro.message ||
-            'Não foi possível iniciar o PayPal.'
-        );
-
-    }
-}
-
-
-// ======================================================
-// OBTER CLIENT ID DO PAYPAL
-// ======================================================
-
-async function obterPayPalClientId() {
-
-    const response =
-        await fetch(
-            `${API_URL}/api/paypal/client-id`
-        );
-
-
-    if (!response.ok) {
-
-        throw new Error(
-            'Não foi possível obter o Client ID do PayPal.'
-        );
-    }
-
-
-    const data =
-        await response.json();
-
-
-    if (!data.clientId) {
-
-        throw new Error(
-            'Client ID do PayPal não foi retornado pelo servidor.'
-        );
-    }
-
-
-    return data.clientId;
-}
-
-
-// ======================================================
-// INICIALIZAR PAYPAL
+// INICIALIZAR PAYPAL V6
 // ======================================================
 
 async function inicializarPayPal() {
 
     if (paypalInicializado) {
-
-        console.log(
-            'PayPal já foi inicializado.'
-        );
-
         return;
     }
-
 
     if (paypalInicializando) {
-
-        console.log(
-            'PayPal já está sendo inicializado.'
-        );
-
         return;
     }
-
 
     paypalInicializando = true;
 
-
     try {
 
-        mostrarLoadingPayPal();
+        esconderErroPayPal();
 
+        mostrarLoadingPayPal();
 
         // --------------------------------------------------
         // VERIFICAR SDK
@@ -450,28 +435,39 @@ async function inicializarPayPal() {
             );
         }
 
-
-        // --------------------------------------------------
-        // CLIENT ID
-        // --------------------------------------------------
-
-        const clientId =
-            await obterPayPalClientId();
-
-
         console.log(
-            'Client ID PayPal obtido.'
+            'SDK PayPal encontrado.'
         );
 
 
         // --------------------------------------------------
-        // CRIAR INSTÂNCIA
+        // OBTER CLIENT TOKEN
         // --------------------------------------------------
+
+        console.log(
+            'Obtendo Client Token do PayPal...'
+        );
+
+        const clientToken =
+            await obterPayPalClientToken();
+
+        console.log(
+            'Client Token recebido com sucesso.'
+        );
+
+
+        // --------------------------------------------------
+        // CRIAR INSTÂNCIA PAYPAL
+        // --------------------------------------------------
+
+        console.log(
+            'Criando instância PayPal...'
+        );
 
         paypalSdk =
             await window.paypal.createInstance({
 
-                clientId: clientId,
+                clientToken,
 
                 components: [
                     'paypal-payments'
@@ -483,12 +479,12 @@ async function inicializarPayPal() {
 
 
         console.log(
-            'Instância PayPal criada.'
+            'Instância PayPal criada com sucesso.'
         );
 
 
         // --------------------------------------------------
-        // VERIFICAR ELEGIBILIDADE
+        // VERIFICAR MÉTODOS ELEGÍVEIS
         // --------------------------------------------------
 
         const eligibility =
@@ -500,7 +496,7 @@ async function inicializarPayPal() {
 
 
         console.log(
-            'Elegibilidade PayPal:',
+            'Métodos elegíveis:',
             eligibility
         );
 
@@ -517,14 +513,13 @@ async function inicializarPayPal() {
 
 
         // --------------------------------------------------
-        // CRIAR BOTÃO
+        // CONTAINER
         // --------------------------------------------------
 
         const container =
             document.getElementById(
                 'paypal-button-container'
             );
-
 
         if (!container) {
 
@@ -534,19 +529,20 @@ async function inicializarPayPal() {
         }
 
 
-        // Evitar criar dois botões
         container.innerHTML = '';
 
+
+        // --------------------------------------------------
+        // BOTÃO PAYPAL
+        // --------------------------------------------------
 
         paypalButton =
             document.createElement(
                 'paypal-button'
             );
 
-
         paypalButton.id =
             'paypal-btn';
-
 
         paypalButton.type =
             'pay';
@@ -558,64 +554,60 @@ async function inicializarPayPal() {
 
 
         // --------------------------------------------------
-        // CRIAR SESSÃO PAYPAL
+        // SESSÃO DE PAGAMENTO
         // --------------------------------------------------
 
         paypalSession =
             paypalSdk.createPayPalOneTimePaymentSession({
 
-                onApprove:
-                    async ({ orderId }) => {
+                onApprove: async ({
+                    orderId
+                }) => {
 
-                        return await capturarPedidoPayPal(
-                            orderId
-                        );
+                    console.log(
+                        'Pagamento aprovado pelo PayPal.'
+                    );
 
-                    },
-
-
-                onCancel:
-                    (data) => {
-
-                        console.log(
-                            'Pagamento cancelado:',
-                            data
-                        );
+                    return await capturarPedidoPayPal(
+                        orderId
+                    );
+                },
 
 
-                        esconderLoadingPayPal();
+                onCancel: (data) => {
+
+                    console.log(
+                        'Pagamento cancelado:',
+                        data
+                    );
+
+                    esconderLoadingPayPal();
+
+                    mostrarErroPayPal(
+                        'O pagamento foi cancelado.'
+                    );
+                },
 
 
-                        mostrarErroPayPal(
-                            'O pagamento foi cancelado.'
-                        );
+                onError: (erro) => {
 
-                    },
+                    console.error(
+                        'Erro no checkout PayPal:',
+                        erro
+                    );
 
+                    esconderLoadingPayPal();
 
-                onError:
-                    (erro) => {
-
-                        console.error(
-                            'Erro no checkout PayPal:',
-                            erro
-                        );
-
-
-                        esconderLoadingPayPal();
-
-
-                        mostrarErroPayPal(
-                            'Ocorreu um erro durante o pagamento.'
-                        );
-
-                    }
+                    mostrarErroPayPal(
+                        'Ocorreu um erro durante o pagamento.'
+                    );
+                }
 
             });
 
 
         // --------------------------------------------------
-        // EVENTO DO BOTÃO
+        // CLIQUE NO BOTÃO
         // --------------------------------------------------
 
         paypalButton.addEventListener(
@@ -625,7 +617,6 @@ async function inicializarPayPal() {
                 try {
 
                     esconderErroPayPal();
-
 
                     const totalAtual =
                         calcularTotal();
@@ -642,36 +633,32 @@ async function inicializarPayPal() {
                     }
 
 
-                    mostrarLoadingPayPal();
-
-
                     console.log(
-                        'Criando pedido de:',
+                        'Valor do pagamento:',
                         totalAtual
                     );
 
 
-                    /*
-                     * IMPORTANTE:
-                     *
-                     * Não usar await aqui.
-                     *
-                     * O PayPal recomenda manter a Promise
-                     * de criação do pedido para preservar
-                     * a ativação do clique do usuário.
-                     */
+                    mostrarLoadingPayPal();
 
+
+                    // Criar pedido no backend
                     const createOrderPromise =
                         criarPedidoPayPal(
                             totalAtual
                         );
 
 
+                    // Abrir checkout PayPal
                     await paypalSession.start(
+
                         {
-                            presentationMode: 'auto'
+                            presentationMode:
+                                'auto'
                         },
+
                         createOrderPromise
+
                     );
 
                 } catch (erro) {
@@ -681,29 +668,36 @@ async function inicializarPayPal() {
                         erro
                     );
 
-
                     esconderLoadingPayPal();
-
 
                     mostrarErroPayPal(
                         erro.message ||
                         'Não foi possível abrir o PayPal.'
                     );
-
                 }
 
             }
         );
 
 
-        paypalInicializado = true;
+        // --------------------------------------------------
+        // FINALIZADO
+        // --------------------------------------------------
 
+        paypalInicializado = true;
 
         esconderLoadingPayPal();
 
+        console.log(
+            '=========================================='
+        );
 
         console.log(
-            'PayPal inicializado com sucesso.'
+            'PAYPAL INICIALIZADO COM SUCESSO'
+        );
+
+        console.log(
+            '=========================================='
         );
 
 
@@ -714,636 +708,170 @@ async function inicializarPayPal() {
             erro
         );
 
+        esconderLoadingPayPal();
 
         mostrarErroPayPal(
             erro.message ||
             'Erro ao inicializar o PayPal.'
         );
 
-
         throw erro;
-
 
     } finally {
 
         paypalInicializando = false;
-
     }
 }
 
 
 // ======================================================
-// CRIAR PEDIDO NO SERVIDOR
+// FUNÇÃO PAGAR AGORA
 // ======================================================
 
-async function criarPedidoPayPal(valor) {
+async function pagarAgora() {
 
-    console.log(
-        'Enviando criação do pedido para o servidor:',
-        valor
-    );
+    const total =
+        calcularTotal();
 
 
-    const response =
-        await fetch(
-            `${API_URL}/api/paypal/create-order`,
-            {
-                method: 'POST',
+    if (!total || total <= 0) {
 
-                headers: {
-                    'Content-Type':
-                        'application/json'
-                },
-
-                body: JSON.stringify({
-
-                    valor: Number(
-                        valor.toFixed(2)
-                    )
-
-                })
-
-            }
+        alert(
+            'Selecione pelo menos um serviço e informe um preço válido.'
         );
 
-
-    const data =
-        await response.json();
-
-
-    if (!response.ok) {
-
-        console.error(
-            'Erro retornado pelo servidor:',
-            data
-        );
-
-
-        throw new Error(
-            data.erro ||
-            'Erro ao criar pedido PayPal.'
-        );
+        return;
     }
 
 
-    if (!data.id) {
-
-        throw new Error(
-            'O PayPal não retornou o ID do pedido.'
+    // Mostrar seção de pagamento
+    const paymentMethods =
+        document.getElementById(
+            'payment-methods'
         );
+
+    if (paymentMethods) {
+
+        paymentMethods.classList.remove(
+            'hidden'
+        );
+
+        paymentMethods.style.display =
+            'block';
     }
 
 
-    console.log(
-        'Pedido PayPal criado:',
-        data.id
-    );
+    // --------------------------------------------------
+    // CRIAR CONTAINER DO PAYPAL
+    // --------------------------------------------------
+
+    let paypalContainer =
+        document.getElementById(
+            'paypal-button-container'
+        );
 
 
-    /*
-     * IMPORTANTE NO SDK V6:
-     *
-     * createOrder precisa retornar
-     * { orderId: "..." }
-     */
+    if (!paypalContainer) {
 
-    return {
-        orderId: data.id
-    };
-}
+        const paymentSection =
+            document.getElementById(
+                'payment-methods'
+            );
+
+        if (!paymentSection) {
+
+            alert(
+                'Área de pagamento não encontrada.'
+            );
+
+            return;
+        }
 
 
-// ======================================================
-// CAPTURAR PEDIDO
-// ======================================================
+        const paypalBox =
+            document.createElement(
+                'div'
+            );
 
-async function capturarPedidoPayPal(orderId) {
+        paypalBox.className =
+            'payment-method';
 
-    console.log(
-        'Capturando pedido:',
-        orderId
-    );
 
+        paypalBox.innerHTML = `
+
+            <h3>Pagamento com PayPal</h3>
+
+            <p>
+                Total do orçamento:
+                <strong>
+                    R$ ${total.toFixed(2)}
+                </strong>
+            </p>
+
+            <div
+                id="paypal-button-container"
+                style="margin-top: 20px;"
+            ></div>
+
+            <div
+                id="paypal-loading"
+                style="
+                    display:none;
+                    margin-top:10px;
+                    font-size:14px;
+                "
+            >
+                Processando pagamento...
+            </div>
+
+        `;
+
+
+        paymentSection.appendChild(
+            paypalBox
+        );
+
+
+        paypalContainer =
+            document.getElementById(
+                'paypal-button-container'
+            );
+    }
+
+
+    // --------------------------------------------------
+    // INICIALIZAR
+    // --------------------------------------------------
 
     try {
 
-        const response =
-            await fetch(
-                `${API_URL}/api/paypal/capture-order`,
-                {
-                    method: 'POST',
-
-                    headers: {
-                        'Content-Type':
-                            'application/json'
-                    },
-
-                    body: JSON.stringify({
-
-                        orderID: orderId
-
-                    })
-
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        console.log(
-            'Resposta da captura:',
-            data
-        );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.erro ||
-                'Erro ao capturar pagamento.'
-            );
-        }
-
-
-        esconderLoadingPayPal();
-
-
-        // --------------------------------------------------
-        // PAGAMENTO CONCLUÍDO
-        // --------------------------------------------------
-
-        if (
-            data.status ===
-            'COMPLETED'
-        ) {
-
-            mostrarSucessoPayPal(
-                data.orderID ||
-                orderId
-            );
-
-            return data;
-        }
-
-
-        // --------------------------------------------------
-        // OUTRO STATUS
-        // --------------------------------------------------
-
-        mostrarErroPayPal(
-            `O pagamento foi processado com status: ${data.status}`
-        );
-
-
-        return data;
-
+        await inicializarPayPal();
 
     } catch (erro) {
 
         console.error(
-            'Erro na captura PayPal:',
+            'Falha ao inicializar PayPal:',
             erro
         );
 
-
-        esconderLoadingPayPal();
-
-
-        mostrarErroPayPal(
-            erro.message ||
-            'Não foi possível confirmar o pagamento.'
-        );
-
-
-        throw erro;
     }
+
 }
 
 
 // ======================================================
-// MOSTRAR LOADING
-// ======================================================
-
-function mostrarLoadingPayPal() {
-
-    const loading =
-        document.getElementById(
-            'paypal-loading'
-        );
-
-
-    if (loading) {
-
-        loading.style.display =
-            'block';
-
-        loading.textContent =
-            'Processando pagamento pelo PayPal...';
-    }
-}
-
-
-// ======================================================
-// ESCONDER LOADING
-// ======================================================
-
-function esconderLoadingPayPal() {
-
-    const loading =
-        document.getElementById(
-            'paypal-loading'
-        );
-
-
-    if (loading) {
-
-        loading.style.display =
-            'none';
-    }
-}
-
-
-// ======================================================
-// MOSTRAR SUCESSO
-// ======================================================
-
-function mostrarSucessoPayPal(orderId) {
-
-    const result =
-        document.getElementById(
-            'paypal-result'
-        );
-
-
-    const orderElement =
-        document.getElementById(
-            'paypal-order-id'
-        );
-
-
-    const error =
-        document.getElementById(
-            'paypal-error'
-        );
-
-
-    if (error) {
-
-        error.style.display =
-            'none';
-    }
-
-
-    if (result) {
-
-        result.style.display =
-            'block';
-    }
-
-
-    if (orderElement) {
-
-        orderElement.textContent =
-            orderId || '';
-    }
-
-
-    console.log(
-        'PAGAMENTO PAYPAL APROVADO:',
-        orderId
-    );
-}
-
-
-// ======================================================
-// MOSTRAR ERRO
-// ======================================================
-
-function mostrarErroPayPal(mensagem) {
-
-    const error =
-        document.getElementById(
-            'paypal-error'
-        );
-
-
-    const errorMessage =
-        document.getElementById(
-            'paypal-error-message'
-        );
-
-
-    if (error) {
-
-        error.style.display =
-            'block';
-    }
-
-
-    if (errorMessage) {
-
-        errorMessage.textContent =
-            mensagem;
-    }
-}
-
-
-// ======================================================
-// ESCONDER ERRO
-// ======================================================
-
-function esconderErroPayPal() {
-
-    const error =
-        document.getElementById(
-            'paypal-error'
-        );
-
-
-    if (error) {
-
-        error.style.display =
-            'none';
-    }
-}
-
-
-// ======================================================
-// NAVEGAÇÃO SPA
-// ======================================================
-
-function mostrarPagina(id) {
-
-    const paginas =
-        document.querySelectorAll(
-            '.page'
-        );
-
-
-    paginas.forEach(
-        pagina => {
-
-            pagina.classList.remove(
-                'active'
-            );
-
-        }
-    );
-
-
-    const pagina =
-        document.getElementById(id);
-
-
-    if (pagina) {
-
-        pagina.classList.add(
-            'active'
-        );
-    }
-
-
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-}
-
-
-// ======================================================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO DA PÁGINA
 // ======================================================
 
 document.addEventListener(
     'DOMContentLoaded',
     () => {
 
+        calcularTotal();
+
         console.log(
             'BT Design carregado.'
         );
-
-
-        // --------------------------------------------------
-        // CHECKBOXES E QUANTIDADES
-        // --------------------------------------------------
-
-        const linhas =
-            document.querySelectorAll(
-                '.servico-row'
-            );
-
-
-        linhas.forEach(
-            linha => {
-
-                const checkbox =
-                    linha.querySelector(
-                        '.servico-checkbox'
-                    );
-
-
-                const quantidade =
-                    linha.querySelector(
-                        '.quantidade'
-                    );
-
-
-                if (checkbox) {
-
-                    checkbox.addEventListener(
-                        'change',
-                        () => {
-
-                            calcularTotal();
-
-                        }
-                    );
-
-                }
-
-
-                if (quantidade) {
-
-                    quantidade.addEventListener(
-                        'input',
-                        () => {
-
-                            calcularTotal();
-
-                        }
-                    );
-
-                }
-
-            }
-        );
-
-
-        // --------------------------------------------------
-        // LINKS DE NAVEGAÇÃO
-        // --------------------------------------------------
-
-        const links =
-            document.querySelectorAll(
-                'a[href^="#"]'
-            );
-
-
-        links.forEach(
-            link => {
-
-                link.addEventListener(
-                    'click',
-                    event => {
-
-                        const href =
-                            link.getAttribute(
-                                'href'
-                            );
-
-
-                        if (
-                            !href ||
-                            href === '#'
-                        ) {
-
-                            return;
-                        }
-
-
-                        const id =
-                            href.substring(1);
-
-
-                        const pagina =
-                            document.getElementById(
-                                id
-                            );
-
-
-                        if (!pagina) {
-
-                            return;
-                        }
-
-
-                        event.preventDefault();
-
-
-                        mostrarPagina(
-                            id
-                        );
-
-
-                        history.pushState(
-                            null,
-                            '',
-                            href
-                        );
-
-                    }
-                );
-
-            }
-        );
-
-
-        // --------------------------------------------------
-        // PÁGINA INICIAL
-        // --------------------------------------------------
-
-        const hash =
-            window.location.hash;
-
-
-        if (
-            hash &&
-            document.getElementById(
-                hash.substring(1)
-            )
-        ) {
-
-            mostrarPagina(
-                hash.substring(1)
-            );
-
-        } else {
-
-            mostrarPagina(
-                'inicio'
-            );
-
-        }
-
-
-        // --------------------------------------------------
-        // CALCULAR TOTAL INICIAL
-        // --------------------------------------------------
-
-        calcularTotal();
-
-
-        // --------------------------------------------------
-        // LOADER
-        // --------------------------------------------------
-
-        const pageLoader =
-            document.getElementById(
-                'page-loader'
-            );
-
-
-        if (pageLoader) {
-
-            setTimeout(
-                () => {
-
-                    pageLoader.classList.add(
-                        'hidden'
-                    );
-
-                },
-                500
-            );
-
-        }
-
-    }
-);
-
-
-// ======================================================
-// ATUALIZAR PÁGINA QUANDO VOLTAR
-// ======================================================
-
-window.addEventListener(
-    'popstate',
-    () => {
-
-        const hash =
-            window.location.hash;
-
-
-        if (
-            hash &&
-            document.getElementById(
-                hash.substring(1)
-            )
-        ) {
-
-            mostrarPagina(
-                hash.substring(1)
-            );
-
-        } else {
-
-            mostrarPagina(
-                'inicio'
-            );
-
-        }
 
     }
 );
