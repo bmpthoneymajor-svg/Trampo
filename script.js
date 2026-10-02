@@ -874,4 +874,36 @@ document.addEventListener(
         );
 
     }
+
+
 );
+async function onPayPalLoaded() {
+    console.log('SDK PayPal carregado.');
+
+    try {
+        await inicializarPayPal();
+
+        const status =
+            document.getElementById('paypal-status');
+
+        if (status) {
+            status.textContent =
+                'PayPal pronto para pagamento.';
+        }
+
+    } catch (erro) {
+
+        console.error(
+            'Erro ao carregar PayPal:',
+            erro
+        );
+
+        const status =
+            document.getElementById('paypal-status');
+
+        if (status) {
+            status.textContent =
+                'Não foi possível carregar o PayPal.';
+        }
+    }
+}
