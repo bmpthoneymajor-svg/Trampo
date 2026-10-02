@@ -356,28 +356,49 @@ function esconderErroPayPal() {
 // ======================================================
 
 async function obterPayPalClientToken() {
+    const url = `${API_URL}/api/paypal/client-token`;
 
-    const response = await fetch(
-        `${API_URL}/api/paypal/client-token`,
-        {
-            method: 'GET',
-            cache: 'no-store'
+    console.log('==========================================');
+    console.log('PAYPAL CLIENT TOKEN');
+    console.log('URL:', url);
+    console.log('==========================================');
+
+    const response = await fetch(url, {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+            'Accept': 'application/json'
         }
+    });
+
+    console.log('Status:', response.status);
+    console.log('Status Text:', response.statusText);
+    console.log(
+        'Content-Type:',
+        response.headers.get('content-type')
     );
+
+    const texto = await response.text();
+
+    console.log('Resposta bruta do servidor:');
+    console.log(texto);
 
     let data;
 
     try {
-        data = await response.json();
+        data = JSON.parse(texto);
     } catch (erro) {
+        console.error(
+            'O servidor não retornou JSON válido.',
+            texto
+        );
 
         throw new Error(
-            'O servidor retornou uma resposta inválida.'
+            `Resposta inválida do servidor. Status: ${response.status}`
         );
     }
 
     if (!response.ok) {
-
         console.error(
             'Erro ao obter Client Token:',
             data
@@ -385,20 +406,26 @@ async function obterPayPalClientToken() {
 
         throw new Error(
             data.erro ||
+            data.error ||
             'Não foi possível obter o Client Token do PayPal.'
         );
     }
 
     if (!data.clientToken) {
+        console.error(
+            'JSON recebido, mas sem clientToken:',
+            data
+        );
 
         throw new Error(
             'O servidor não retornou o Client Token do PayPal.'
         );
     }
 
+    console.log('Client Token recebido com sucesso.');
+
     return data.clientToken;
 }
-
 
 // ======================================================
 // CRIAR PEDIDO NO BACKEND
