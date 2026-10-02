@@ -82,7 +82,55 @@ async function generateAccessToken() {
 
   return data.access_token;
 }
+// ======================================================
+// GERAR CLIENT TOKEN PARA PAYPAL SDK V6
+// ======================================================
 
+async function generateClientToken() {
+  const auth = Buffer.from(
+    `${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`
+  ).toString('base64');
+
+  const response = await fetch(
+    `${PAYPAL_API}/v1/oauth2/token`,
+    {
+      method: 'POST',
+
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        response_type: 'client_token',
+        'domains[]': 'https://trampo.up.railway.app'
+      }).toString()
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error('Erro ao gerar Client Token do PayPal:');
+    console.error(JSON.stringify(data, null, 2));
+
+    throw new Error(
+      data.error_description ||
+      data.error ||
+      'Não foi possível gerar o Client Token do PayPal.'
+    );
+  }
+
+  if (!data.access_token) {
+    throw new Error(
+      'O PayPal não retornou o Client Token.'
+    );
+  }
+
+  return data.access_token;
+}
 // ======================================================
 // CRIAR PEDIDO PAYPAL
 // ======================================================
@@ -363,6 +411,32 @@ app.get('/api/paypal/client-id', (req, res) => {
   res.json({
     clientId: PAYPAL_CLIENT_ID
   });
+});
+app.get('/api/paypal/client-token', async (req, res) => {
+  try {
+    console.log('------------------------------------------');
+    console.log('GERANDO CLIENT TOKEN DO PAYPAL');
+
+    const clientToken = await generateClientToken();
+
+    console.log('Client Token gerado com sucesso.');
+
+    return res.json({
+      clientToken
+    });
+
+  } catch (erro) {
+    console.error(
+      'ERRO AO GERAR CLIENT TOKEN DO PAYPAL:'
+    );
+
+    console.error(erro);
+
+    return res.status(500).json({
+      erro: 'Erro ao gerar Client Token do PayPal.',
+      detalhes: erro.message
+    });
+  }
 });
 
 app.get('*', (req, res) => {
