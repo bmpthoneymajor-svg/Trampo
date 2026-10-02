@@ -355,6 +355,15 @@ app.get('/api/status', (req, res) => {
 // ======================================================
 // FRONTEND
 // ======================================================
+// ======================================================
+// CLIENT ID DO PAYPAL PARA O FRONTEND
+// ======================================================
+
+app.get('/api/paypal/client-id', (req, res) => {
+  res.json({
+    clientId: PAYPAL_CLIENT_ID
+  });
+});
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));

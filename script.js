@@ -1,727 +1,1349 @@
+// ======================================================
+// BT DESIGN - SCRIPT PRINCIPAL
+// PAYPAL + ORÇAMENTO
+// ======================================================
+
 const API_URL = 'https://trampo.up.railway.app'.replace(/\/$/, '');
-// CALCULAR TOTAL
+
+
+// ======================================================
+// VARIÁVEIS GLOBAIS
+// ======================================================
+
+let paypalSdk = null;
+let paypalSession = null;
+let paypalButton = null;
+
+let paypalInicializado = false;
+let paypalInicializando = false;
+
+let ultimoTotal = 0;
+
+
+// ======================================================
+// TABELA DE PREÇOS
+// ======================================================
+
+const precosServicos = {
+
+    layout: {
+        normal: 700,
+        desconto: 600
+    },
+
+    animacao: {
+        normal: 120,
+        desconto: 100
+    },
+
+    video: {
+        normal: 120,
+        desconto: 100
+    },
+
+    restauracao: {
+        normal: 80,
+        desconto: 70
+    },
+
+    modelagem3d: {
+        normal: 170,
+        desconto: 145
+    },
+
+    reparo3d: {
+        normal: 120,
+        desconto: 90
+    },
+
+    render: {
+        normal: 200,
+        desconto: 150
+    },
+
+    imagem: {
+        normal: 30,
+        desconto: 30
+    },
+
+    cartao: {
+        normal: 80,
+        desconto: 80
+    },
+
+    panfleto: {
+        normal: 50,
+        desconto: 50
+    },
+
+    folder: {
+        normal: 80,
+        desconto: 80
+    },
+
+    banner: {
+        normal: 100,
+        desconto: 100
+    },
+
+    'Imagem Renderizada': {
+        normal: 130,
+        desconto: 130
+    }
+};
+
+
+// ======================================================
+// CALCULAR PREÇO DE UM SERVIÇO
+// ======================================================
+
+function calcularPrecoServico(key, quantidade) {
+
+    quantidade = Number(quantidade) || 1;
+
+    // --------------------------------------------------
+    // DIAGRAMAÇÃO
+    // --------------------------------------------------
+
+    if (key === 'diagramacao') {
+
+        if (quantidade >= 131) {
+            return 2.30;
+        }
+
+        if (quantidade >= 81) {
+            return 3.70;
+        }
+
+        if (quantidade >= 31) {
+            return 4.70;
+        }
+
+        if (quantidade >= 21) {
+            return 5.90;
+        }
+
+        if (quantidade >= 10) {
+            return 6.80;
+        }
+
+        return 0;
+    }
+
+
+    // --------------------------------------------------
+    // SERVIÇOS NORMAIS
+    // --------------------------------------------------
+
+    const servico = precosServicos[key];
+
+    if (!servico) {
+        return 0;
+    }
+
+
+    // Para serviços com desconto por quantidade
+    if (quantidade > 1) {
+        return servico.desconto;
+    }
+
+    return servico.normal;
+}
+
+
+// ======================================================
+// CALCULAR TOTAL DO ORÇAMENTO
+// ======================================================
+
 function calcularTotal() {
+
+    const linhas = document.querySelectorAll('.servico-row');
+
     let total = 0;
 
-    document.querySelectorAll('.servico-row').forEach(row => {
-        const checkbox = row.querySelector('.servico-checkbox');
-        const precoInput = row.querySelector('.preco');
-        if (!checkbox.checked) {
-            precoInput.value = '0.00';
+
+    linhas.forEach(linha => {
+
+        const checkbox = linha.querySelector('.servico-checkbox');
+        const quantidadeInput = linha.querySelector('.quantidade');
+        const precoInput = linha.querySelector('.preco');
+
+        if (!checkbox || !quantidadeInput || !precoInput) {
             return;
         }
+
+
+        const quantidade =
+            Math.max(1, Number(quantidadeInput.value) || 1);
 
         const key = checkbox.dataset.key;
-        const qtd = parseInt(row.querySelector('.quantidade').value) || 0;
 
-        let precoUnitario = 0;
+        if (!checkbox.checked) {
 
-        switch (key) {
-            case 'layout':
-                precoUnitario = qtd === 1 ? 700 : 600;
-                break;
+            precoInput.value = '0.00';
 
-            case 'animacao':
-            case 'video':
-                precoUnitario = qtd <= 30 ? 120 : 100;
-                break;
-
-            case 'restauracao':
-                precoUnitario = qtd === 1 ? 80 : 70;
-                break;
-
-            case 'modelagem3d':
-                precoUnitario = qtd === 1 ? 170 : 145;
-                break;
-
-            case 'reparo3d':
-                precoUnitario = qtd === 1 ? 120 : 90;
-                break;
-
-            case 'render':
-                precoUnitario = qtd === 1 ? 200 : 150;
-                break;
-
-            case 'diagramacao':
-                if (qtd >= 10 && qtd <= 20) precoUnitario = 6.8;
-                else if (qtd >= 21 && qtd <= 30) precoUnitario = 5.9;
-                else if (qtd >= 31 && qtd <= 80) precoUnitario = 4.7;
-                else if (qtd >= 81 && qtd <= 130) precoUnitario = 3.7;
-                else if (qtd >= 131) precoUnitario = 2.3;
-                break;
-
-            case 'imagem':
-                precoUnitario = 30;
-                break;
-
-            case 'cartao':
-                precoUnitario = 80;
-                break;
-
-            case 'panfleto':
-                precoUnitario = 50;
-                break;
-
-            case 'folder':
-                precoUnitario = 80;
-                break;
-
-            case 'banner':
-                precoUnitario = 100;
-                break;
-
-            case 'Imagem Renderizada':
-                precoUnitario = 130;
-                break;
+            return;
         }
 
-        precoInput.value = precoUnitario.toFixed(2);
-        total += qtd * precoUnitario;
+
+        const precoUnitario =
+            calcularPrecoServico(key, quantidade);
+
+
+        let subtotal = 0;
+
+
+        // Diagramação usa preço por página
+        if (key === 'diagramacao') {
+
+            subtotal = precoUnitario * quantidade;
+
+        } else {
+
+            subtotal = precoUnitario * quantidade;
+
+        }
+
+
+        precoInput.value =
+            precoUnitario.toFixed(2);
+
+
+        total += subtotal;
+
     });
 
-    document.getElementById('total').textContent = total.toFixed(2);
-    return total;
+
+    ultimoTotal = Number(total.toFixed(2));
+
+
+    // --------------------------------------------------
+    // ATUALIZAR TOTAL NA TELA
+    // --------------------------------------------------
+
+    const totalElement =
+        document.getElementById('total');
+
+    if (totalElement) {
+
+        totalElement.textContent =
+            ultimoTotal.toFixed(2).replace('.', ',');
+
+    }
+
+
+    // --------------------------------------------------
+    // ATUALIZAR TOTAL DO PAYPAL
+    // --------------------------------------------------
+
+    const paypalTotal =
+        document.getElementById('paypal-total');
+
+    if (paypalTotal) {
+
+        paypalTotal.textContent =
+            ultimoTotal.toFixed(2).replace('.', ',');
+
+    }
+
+
+    // --------------------------------------------------
+    // ATUALIZAR CAMPOS ANTIGOS CASO EXISTAM
+    // --------------------------------------------------
+
+    const transactionAmount =
+        document.getElementById('transactionAmount');
+
+    if (transactionAmount) {
+        transactionAmount.value =
+            ultimoTotal.toFixed(2);
+    }
+
+
+    const transactionAmountPix =
+        document.getElementById('transactionAmount-pix');
+
+    if (transactionAmountPix) {
+        transactionAmountPix.value =
+            ultimoTotal.toFixed(2);
+    }
+
+
+    const transactionAmountBoleto =
+        document.getElementById('transactionAmount-boleto');
+
+    if (transactionAmountBoleto) {
+        transactionAmountBoleto.value =
+            ultimoTotal.toFixed(2);
+    }
+
+
+    return ultimoTotal;
 }
 
-async function pagarAgora1() {
-    const total = calcularTotal();
-    console.log('Total calculado:', total);
 
-    if (total <= 0) {
-        alert('Selecione pelo menos um serviço!');
+// ======================================================
+// MOSTRAR / ESCONDER MÉTODOS DE PAGAMENTO
+// ======================================================
+
+function mostrarPagamento() {
+
+    const paymentMethods =
+        document.getElementById('payment-methods');
+
+    if (!paymentMethods) {
+        console.error(
+            'Elemento #payment-methods não encontrado.'
+        );
+
         return;
     }
 
+    paymentMethods.classList.remove('hidden');
+
+    paymentMethods.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+    });
+}
+
+
+// ======================================================
+// PAGAR AGORA
+// ======================================================
+
+async function pagarAgora() {
+
     try {
-        const response = await fetch(`${API_URL}/criar-pagamento`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ valor: total })
-        });
+
+        const total = calcularTotal();
+
+
+        if (!total || total <= 0) {
+
+            alert(
+                'Selecione pelo menos um serviço antes de continuar.'
+            );
+
+            return;
+        }
+
+
+        console.log(
+            'Total do orçamento:',
+            total
+        );
+
+
+        // Atualiza novamente o valor mostrado
+        const paypalTotal =
+            document.getElementById('paypal-total');
+
+        if (paypalTotal) {
+
+            paypalTotal.textContent =
+                total.toFixed(2).replace('.', ',');
+        }
+
+
+        mostrarPagamento();
+
+
+        // Inicializa o PayPal
+        await inicializarPayPal();
+
+
+    } catch (erro) {
+
+        console.error(
+            'Erro ao iniciar pagamento:',
+            erro
+        );
+
+        mostrarErroPayPal(
+            erro.message ||
+            'Não foi possível iniciar o PayPal.'
+        );
+
+    }
+}
+
+
+// ======================================================
+// OBTER CLIENT ID DO PAYPAL
+// ======================================================
+
+async function obterPayPalClientId() {
+
+    const response =
+        await fetch(
+            `${API_URL}/api/paypal/client-id`
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            'Não foi possível obter o Client ID do PayPal.'
+        );
+    }
+
+
+    const data =
+        await response.json();
+
+
+    if (!data.clientId) {
+
+        throw new Error(
+            'Client ID do PayPal não foi retornado pelo servidor.'
+        );
+    }
+
+
+    return data.clientId;
+}
+
+
+// ======================================================
+// INICIALIZAR PAYPAL
+// ======================================================
+
+async function inicializarPayPal() {
+
+    if (paypalInicializado) {
+
+        console.log(
+            'PayPal já foi inicializado.'
+        );
+
+        return;
+    }
+
+
+    if (paypalInicializando) {
+
+        console.log(
+            'PayPal já está sendo inicializado.'
+        );
+
+        return;
+    }
+
+
+    paypalInicializando = true;
+
+
+    try {
+
+        mostrarLoadingPayPal();
+
+
+        // --------------------------------------------------
+        // VERIFICAR SDK
+        // --------------------------------------------------
+
+        if (!window.paypal) {
+
+            throw new Error(
+                'SDK do PayPal ainda não foi carregado.'
+            );
+        }
+
+
+        // --------------------------------------------------
+        // CLIENT ID
+        // --------------------------------------------------
+
+        const clientId =
+            await obterPayPalClientId();
+
+
+        console.log(
+            'Client ID PayPal obtido.'
+        );
+
+
+        // --------------------------------------------------
+        // CRIAR INSTÂNCIA
+        // --------------------------------------------------
+
+        paypalSdk =
+            await window.paypal.createInstance({
+
+                clientId: clientId,
+
+                components: [
+                    'paypal-payments'
+                ],
+
+                pageType: 'checkout'
+
+            });
+
+
+        console.log(
+            'Instância PayPal criada.'
+        );
+
+
+        // --------------------------------------------------
+        // VERIFICAR ELEGIBILIDADE
+        // --------------------------------------------------
+
+        const eligibility =
+            await paypalSdk.findEligibleMethods({
+
+                currencyCode: 'BRL'
+
+            });
+
+
+        console.log(
+            'Elegibilidade PayPal:',
+            eligibility
+        );
+
+
+        if (
+            !eligibility ||
+            !eligibility.isEligible('paypal')
+        ) {
+
+            throw new Error(
+                'O PayPal não está disponível para esta configuração.'
+            );
+        }
+
+
+        // --------------------------------------------------
+        // CRIAR BOTÃO
+        // --------------------------------------------------
+
+        const container =
+            document.getElementById(
+                'paypal-button-container'
+            );
+
+
+        if (!container) {
+
+            throw new Error(
+                'Container do botão PayPal não encontrado.'
+            );
+        }
+
+
+        // Evitar criar dois botões
+        container.innerHTML = '';
+
+
+        paypalButton =
+            document.createElement(
+                'paypal-button'
+            );
+
+
+        paypalButton.id =
+            'paypal-btn';
+
+
+        paypalButton.type =
+            'pay';
+
+
+        container.appendChild(
+            paypalButton
+        );
+
+
+        // --------------------------------------------------
+        // CRIAR SESSÃO PAYPAL
+        // --------------------------------------------------
+
+        paypalSession =
+            paypalSdk.createPayPalOneTimePaymentSession({
+
+                onApprove:
+                    async ({ orderId }) => {
+
+                        return await capturarPedidoPayPal(
+                            orderId
+                        );
+
+                    },
+
+
+                onCancel:
+                    (data) => {
+
+                        console.log(
+                            'Pagamento cancelado:',
+                            data
+                        );
+
+
+                        esconderLoadingPayPal();
+
+
+                        mostrarErroPayPal(
+                            'O pagamento foi cancelado.'
+                        );
+
+                    },
+
+
+                onError:
+                    (erro) => {
+
+                        console.error(
+                            'Erro no checkout PayPal:',
+                            erro
+                        );
+
+
+                        esconderLoadingPayPal();
+
+
+                        mostrarErroPayPal(
+                            'Ocorreu um erro durante o pagamento.'
+                        );
+
+                    }
+
+            });
+
+
+        // --------------------------------------------------
+        // EVENTO DO BOTÃO
+        // --------------------------------------------------
+
+        paypalButton.addEventListener(
+            'click',
+            async () => {
+
+                try {
+
+                    esconderErroPayPal();
+
+
+                    const totalAtual =
+                        calcularTotal();
+
+
+                    if (
+                        !totalAtual ||
+                        totalAtual <= 0
+                    ) {
+
+                        throw new Error(
+                            'O valor do orçamento é inválido.'
+                        );
+                    }
+
+
+                    mostrarLoadingPayPal();
+
+
+                    console.log(
+                        'Criando pedido de:',
+                        totalAtual
+                    );
+
+
+                    /*
+                     * IMPORTANTE:
+                     *
+                     * Não usar await aqui.
+                     *
+                     * O PayPal recomenda manter a Promise
+                     * de criação do pedido para preservar
+                     * a ativação do clique do usuário.
+                     */
+
+                    const createOrderPromise =
+                        criarPedidoPayPal(
+                            totalAtual
+                        );
+
+
+                    await paypalSession.start(
+                        {
+                            presentationMode: 'auto'
+                        },
+                        createOrderPromise
+                    );
+
+                } catch (erro) {
+
+                    console.error(
+                        'Erro ao abrir PayPal:',
+                        erro
+                    );
+
+
+                    esconderLoadingPayPal();
+
+
+                    mostrarErroPayPal(
+                        erro.message ||
+                        'Não foi possível abrir o PayPal.'
+                    );
+
+                }
+
+            }
+        );
+
+
+        paypalInicializado = true;
+
+
+        esconderLoadingPayPal();
+
+
+        console.log(
+            'PayPal inicializado com sucesso.'
+        );
+
+
+    } catch (erro) {
+
+        console.error(
+            'Erro na inicialização do PayPal:',
+            erro
+        );
+
+
+        mostrarErroPayPal(
+            erro.message ||
+            'Erro ao inicializar o PayPal.'
+        );
+
+
+        throw erro;
+
+
+    } finally {
+
+        paypalInicializando = false;
+
+    }
+}
+
+
+// ======================================================
+// CRIAR PEDIDO NO SERVIDOR
+// ======================================================
+
+async function criarPedidoPayPal(valor) {
+
+    console.log(
+        'Enviando criação do pedido para o servidor:',
+        valor
+    );
+
+
+    const response =
+        await fetch(
+            `${API_URL}/api/paypal/create-order`,
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type':
+                        'application/json'
+                },
+
+                body: JSON.stringify({
+
+                    valor: Number(
+                        valor.toFixed(2)
+                    )
+
+                })
+
+            }
+        );
+
+
+    const data =
+        await response.json();
+
+
+    if (!response.ok) {
+
+        console.error(
+            'Erro retornado pelo servidor:',
+            data
+        );
+
+
+        throw new Error(
+            data.erro ||
+            'Erro ao criar pedido PayPal.'
+        );
+    }
+
+
+    if (!data.id) {
+
+        throw new Error(
+            'O PayPal não retornou o ID do pedido.'
+        );
+    }
+
+
+    console.log(
+        'Pedido PayPal criado:',
+        data.id
+    );
+
+
+    /*
+     * IMPORTANTE NO SDK V6:
+     *
+     * createOrder precisa retornar
+     * { orderId: "..." }
+     */
+
+    return {
+        orderId: data.id
+    };
+}
+
+
+// ======================================================
+// CAPTURAR PEDIDO
+// ======================================================
+
+async function capturarPedidoPayPal(orderId) {
+
+    console.log(
+        'Capturando pedido:',
+        orderId
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_URL}/api/paypal/capture-order`,
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json'
+                    },
+
+                    body: JSON.stringify({
+
+                        orderID: orderId
+
+                    })
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        console.log(
+            'Resposta da captura:',
+            data
+        );
+
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Erro na resposta do servidor:', response.status, errorText);
-            throw new Error('Erro na resposta do servidor');
+
+            throw new Error(
+                data.erro ||
+                'Erro ao capturar pagamento.'
+            );
         }
 
-        const data = await response.json();
-        console.log('Data recebida:', data);
 
-        if (!data.link) {
-            throw new Error('Link de pagamento não recebido');
+        esconderLoadingPayPal();
+
+
+        // --------------------------------------------------
+        // PAGAMENTO CONCLUÍDO
+        // --------------------------------------------------
+
+        if (
+            data.status ===
+            'COMPLETED'
+        ) {
+
+            mostrarSucessoPayPal(
+                data.orderID ||
+                orderId
+            );
+
+            return data;
         }
 
-        window.location.href = data.link;
-    } catch (error) {
-        alert('Erro ao processar o pagamento. Verifique o console e se o servidor está rodando.');
-        console.error(error);
+
+        // --------------------------------------------------
+        // OUTRO STATUS
+        // --------------------------------------------------
+
+        mostrarErroPayPal(
+            `O pagamento foi processado com status: ${data.status}`
+        );
+
+
+        return data;
+
+
+    } catch (erro) {
+
+        console.error(
+            'Erro na captura PayPal:',
+            erro
+        );
+
+
+        esconderLoadingPayPal();
+
+
+        mostrarErroPayPal(
+            erro.message ||
+            'Não foi possível confirmar o pagamento.'
+        );
+
+
+        throw erro;
     }
 }
 
-let pageLoaderInterval;
 
-function startPageLoader() {
-    const loader = document.getElementById('page-loader');
-    const bar = loader?.querySelector('.page-loader-bar');
-    if (!loader || !bar) return;
+// ======================================================
+// MOSTRAR LOADING
+// ======================================================
 
-    loader.classList.remove('page-loader-done');
-    bar.style.width = '0%';
+function mostrarLoadingPayPal() {
 
-    let progress = 0;
-    clearInterval(pageLoaderInterval);
-    pageLoaderInterval = setInterval(() => {
-        progress = Math.min(progress + Math.random() * 6 + 8, 88);
-        bar.style.width = `${progress}%`;
-    }, 100);
-}
+    const loading =
+        document.getElementById(
+            'paypal-loading'
+        );
 
-function finishPageLoader() {
-    const loader = document.getElementById('page-loader');
-    const bar = loader?.querySelector('.page-loader-bar');
-    if (!loader || !bar) return;
 
-    clearInterval(pageLoaderInterval);
-    bar.style.width = '100%';
-    setTimeout(() => loader.classList.add('page-loader-done'), 250);
-}
+    if (loading) {
 
-function initPageLoader() {
-    const loader = document.getElementById('page-loader');
-    const bar = loader?.querySelector('.page-loader-bar');
-    if (!loader || !bar) return;
+        loading.style.display =
+            'block';
 
-    let progress = 0;
-    pageLoaderInterval = setInterval(() => {
-        progress = Math.min(progress + Math.random() * 8 + 5, 92);
-        bar.style.width = `${progress}%`;
-    }, 120);
-
-    const onLoadFinish = () => {
-        finishPageLoader();
-        window.removeEventListener('load', onLoadFinish);
-    };
-
-    if (document.readyState === 'complete') {
-        finishPageLoader();
-    } else {
-        window.addEventListener('load', onLoadFinish);
+        loading.textContent =
+            'Processando pagamento pelo PayPal...';
     }
 }
 
-initPageLoader();
+
+// ======================================================
+// ESCONDER LOADING
+// ======================================================
+
+function esconderLoadingPayPal() {
+
+    const loading =
+        document.getElementById(
+            'paypal-loading'
+        );
 
 
-// EXECUTA QUANDO CARREGA
-document.addEventListener("DOMContentLoaded", () => {
+    if (loading) {
 
-    // EVENTO DE CÁLCULO PARA CHECKBOXES
-    document.querySelectorAll('.servico-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', calcularTotal);
-    });
+        loading.style.display =
+            'none';
+    }
+}
 
-    // EVENTO DE CÁLCULO PARA QUANTIDADES
-    document.querySelectorAll('.quantidade').forEach(input => {
-        input.addEventListener('input', calcularTotal);
-    });
 
-    // NAVEGAÇÃO SPA
-    const links = document.querySelectorAll("nav a");
-    const pages = document.querySelectorAll(".page");
+// ======================================================
+// MOSTRAR SUCESSO
+// ======================================================
 
-    links.forEach(link => {
-        link.addEventListener("click", (e) => {
-            e.preventDefault();
-            const targetId = link.getAttribute("href").replace("#", "");
+function mostrarSucessoPayPal(orderId) {
 
-            startPageLoader();
-            setTimeout(() => {
-                pages.forEach(page => page.classList.remove("active"));
-                document.getElementById(targetId).classList.add("active");
-                finishPageLoader();
-            }, 180);
-        });
-    });
+    const result =
+        document.getElementById(
+            'paypal-result'
+        );
 
-});
 
-// ===== INTEGRAÇÃO MERCADO PAGO =====
+    const orderElement =
+        document.getElementById(
+            'paypal-order-id'
+        );
 
-// Variáveis globais
-let mp;
-let cardNumberElement;
-let expirationDateElement;
-let securityCodeElement;
 
-// Inicializar Mercado Pago
-async function initMercadoPago() {
-    try {
-        console.log('Iniciando Mercado Pago...');
+    const error =
+        document.getElementById(
+            'paypal-error'
+        );
 
-        // Buscar chave pública do servidor
-       const urlPublicKey = `${API_URL}/api/public-key`;
 
-        console.log('API_URL:', API_URL);
-        console.log('Chamando:', urlPublicKey);
+    if (error) {
 
-        const response = await fetch(urlPublicKey);
+        error.style.display =
+            'none';
+    }
 
-        console.log('Status:', response.status);
-        console.log('URL final:', response.url);
-        console.log('Content-Type:', response.headers.get('content-type'));
 
-        const texto = await response.text();
+    if (result) {
 
-        console.log('Resposta recebida:', texto);
+        result.style.display =
+            'block';
+    }
 
-        const data = JSON.parse(texto);
 
-        console.log('Chave pública recebida:', data.publicKey ? 'OK' : 'ERRO');
+    if (orderElement) {
 
-        if (!data.publicKey) {
-            console.error('Chave pública não encontrada');
-            return;
+        orderElement.textContent =
+            orderId || '';
+    }
+
+
+    console.log(
+        'PAGAMENTO PAYPAL APROVADO:',
+        orderId
+    );
+}
+
+
+// ======================================================
+// MOSTRAR ERRO
+// ======================================================
+
+function mostrarErroPayPal(mensagem) {
+
+    const error =
+        document.getElementById(
+            'paypal-error'
+        );
+
+
+    const errorMessage =
+        document.getElementById(
+            'paypal-error-message'
+        );
+
+
+    if (error) {
+
+        error.style.display =
+            'block';
+    }
+
+
+    if (errorMessage) {
+
+        errorMessage.textContent =
+            mensagem;
+    }
+}
+
+
+// ======================================================
+// ESCONDER ERRO
+// ======================================================
+
+function esconderErroPayPal() {
+
+    const error =
+        document.getElementById(
+            'paypal-error'
+        );
+
+
+    if (error) {
+
+        error.style.display =
+            'none';
+    }
+}
+
+
+// ======================================================
+// NAVEGAÇÃO SPA
+// ======================================================
+
+function mostrarPagina(id) {
+
+    const paginas =
+        document.querySelectorAll(
+            '.page'
+        );
+
+
+    paginas.forEach(
+        pagina => {
+
+            pagina.classList.remove(
+                'active'
+            );
+
         }
+    );
 
-        // Inicializar SDK
-        mp = new MercadoPago(data.publicKey);
-        console.log('Mercado Pago inicializado com sucesso');
 
-        // Inicializar campos de cartão
-        initCardFields();
+    const pagina =
+        document.getElementById(id);
 
-        // Carregar tipos de documento
-        await loadIdentificationTypes();
 
-    } catch (error) {
-        console.error('Erro ao inicializar Mercado Pago:', error);
+    if (pagina) {
+
+        pagina.classList.add(
+            'active'
+        );
     }
+
+
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
 }
 
-// Inicializar campos de cartão
-function initCardFields() {
-    if (!mp) return;
 
-    try {
-        cardNumberElement = mp.fields.create('cardNumber', {
-            placeholder: "Número do cartão"
-        }).mount('form-checkout__cardNumber');
+// ======================================================
+// INICIALIZAÇÃO
+// ======================================================
 
-        expirationDateElement = mp.fields.create('expirationDate', {
-            placeholder: "MM/YY",
-        }).mount('form-checkout__expirationDate');
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
 
-        securityCodeElement = mp.fields.create('securityCode', {
-            placeholder: "Código de segurança"
-        }).mount('form-checkout__securityCode');
+        console.log(
+            'BT Design carregado.'
+        );
 
-        // Listener para mudança de BIN (primeiros 6 dígitos do cartão)
-        cardNumberElement.on('binChange', async (data) => {
-            const { bin } = data;
-            try {
-                if (!bin) {
-                    clearSelectsAndSetPlaceholders();
-                    document.getElementById('paymentMethodId').value = "";
-                    
-                    // Limpar status visual
-                    const statusElement = document.getElementById('card-status');
-                    if (statusElement) {
-                        statusElement.textContent = 'Digite o número do cartão para detectar a bandeira';
-                        statusElement.style.color = '#666';
-                    }
-                    
-                    return;
+
+        // --------------------------------------------------
+        // CHECKBOXES E QUANTIDADES
+        // --------------------------------------------------
+
+        const linhas =
+            document.querySelectorAll(
+                '.servico-row'
+            );
+
+
+        linhas.forEach(
+            linha => {
+
+                const checkbox =
+                    linha.querySelector(
+                        '.servico-checkbox'
+                    );
+
+
+                const quantidade =
+                    linha.querySelector(
+                        '.quantidade'
+                    );
+
+
+                if (checkbox) {
+
+                    checkbox.addEventListener(
+                        'change',
+                        () => {
+
+                            calcularTotal();
+
+                        }
+                    );
+
                 }
 
-                if (bin.length >= 6) {
-                    const { results } = await mp.getPaymentMethods({ bin });
-                    const paymentMethod = results[0];
 
-                    document.getElementById('paymentMethodId').value = paymentMethod.id;
-                    console.log('Método de pagamento detectado:', paymentMethod.id);
-                    
-                    // Atualizar status visual
-                    const statusElement = document.getElementById('card-status');
-                    if (statusElement) {
-                        statusElement.textContent = `Bandeira detectada: ${paymentMethod.name}`;
-                        statusElement.style.color = '#28a745';
-                    }
-                    
-                    updatePCIFieldsSettings(paymentMethod);
-                    await updateIssuer(paymentMethod, bin);
-                    await updateInstallments(paymentMethod, bin);
+                if (quantidade) {
+
+                    quantidade.addEventListener(
+                        'input',
+                        () => {
+
+                            calcularTotal();
+
+                        }
+                    );
+
                 }
-            } catch (e) {
-                console.error('Erro ao obter métodos de pagamento:', e);
+
             }
-        });
+        );
 
-        console.log('Campos de cartão inicializados');
-    } catch (error) {
-        console.error('Erro ao inicializar campos de cartão:', error);
-    }
-}
 
-// Carregar tipos de documento
-async function loadIdentificationTypes() {
-    try {
-        const identificationTypes = await mp.getIdentificationTypes();
-        const elements = [
-            'form-checkout__identificationType',
-            'form-checkout__identificationType-pix',
-            'form-checkout__identificationType-boleto'
-        ];
+        // --------------------------------------------------
+        // LINKS DE NAVEGAÇÃO
+        // --------------------------------------------------
 
-        elements.forEach(elementId => {
-            const element = document.getElementById(elementId);
-            if (element) {
-                createSelectOptions(element, identificationTypes);
+        const links =
+            document.querySelectorAll(
+                'a[href^="#"]'
+            );
+
+
+        links.forEach(
+            link => {
+
+                link.addEventListener(
+                    'click',
+                    event => {
+
+                        const href =
+                            link.getAttribute(
+                                'href'
+                            );
+
+
+                        if (
+                            !href ||
+                            href === '#'
+                        ) {
+
+                            return;
+                        }
+
+
+                        const id =
+                            href.substring(1);
+
+
+                        const pagina =
+                            document.getElementById(
+                                id
+                            );
+
+
+                        if (!pagina) {
+
+                            return;
+                        }
+
+
+                        event.preventDefault();
+
+
+                        mostrarPagina(
+                            id
+                        );
+
+
+                        history.pushState(
+                            null,
+                            '',
+                            href
+                        );
+
+                    }
+                );
+
             }
-        });
+        );
 
-        console.log('Tipos de documento carregados');
-    } catch (e) {
-        console.error('Erro ao carregar tipos de documento:', e);
-    }
-}
 
-// Função auxiliar para criar opções de select
-function createSelectOptions(elem, options, labelsAndKeys = { label: "name", value: "id" }) {
-    const { label, value } = labelsAndKeys;
+        // --------------------------------------------------
+        // PÁGINA INICIAL
+        // --------------------------------------------------
 
-    elem.options.length = 0;
+        const hash =
+            window.location.hash;
 
-    const tempOptions = document.createDocumentFragment();
 
-    options.forEach(option => {
-        const optValue = option[value];
-        const optLabel = option[label];
+        if (
+            hash &&
+            document.getElementById(
+                hash.substring(1)
+            )
+        ) {
 
-        const opt = document.createElement('option');
-        opt.value = optValue;
-        opt.textContent = optLabel;
+            mostrarPagina(
+                hash.substring(1)
+            );
 
-        tempOptions.appendChild(opt);
-    });
-
-    elem.appendChild(tempOptions);
-}
-
-// Limpar selects e definir placeholders
-function clearSelectsAndSetPlaceholders() {
-    const issuerElement = document.getElementById('form-checkout__issuer');
-    const installmentsElement = document.getElementById('form-checkout__installments');
-
-    clearHTMLSelectChildrenFrom(issuerElement);
-    createSelectElementPlaceholder(issuerElement, "Banco emissor");
-
-    clearHTMLSelectChildrenFrom(installmentsElement);
-    createSelectElementPlaceholder(installmentsElement, "Parcelas");
-}
-
-function clearHTMLSelectChildrenFrom(element) {
-    const currOptions = [...element.children];
-    currOptions.forEach(child => child.remove());
-}
-
-function createSelectElementPlaceholder(element, placeholder) {
-    const optionElement = document.createElement('option');
-    optionElement.textContent = placeholder;
-    optionElement.setAttribute('selected', "");
-    optionElement.setAttribute('disabled', "");
-
-    element.appendChild(optionElement);
-}
-
-// Atualizar configurações PCI dos campos
-function updatePCIFieldsSettings(paymentMethod) {
-    const { settings } = paymentMethod;
-
-    const cardNumberSettings = settings[0].card_number;
-    cardNumberElement.update({
-        settings: cardNumberSettings
-    });
-
-    const securityCodeSettings = settings[0].security_code;
-    securityCodeElement.update({
-        settings: securityCodeSettings
-    });
-}
-
-// Atualizar banco emissor
-async function updateIssuer(paymentMethod, bin) {
-    const { additional_info_needed, issuer } = paymentMethod;
-    let issuerOptions = [issuer];
-
-    if (additional_info_needed.includes('issuer_id')) {
-        issuerOptions = await getIssuers(paymentMethod, bin);
-    }
-
-    const issuerElement = document.getElementById('form-checkout__issuer');
-    createSelectOptions(issuerElement, issuerOptions);
-}
-
-async function getIssuers(paymentMethod, bin) {
-    try {
-        const { id: paymentMethodId } = paymentMethod;
-        return await mp.getIssuers({ paymentMethodId, bin });
-    } catch (e) {
-        console.error('Erro ao obter emissores:', e);
-        return [];
-    }
-}
-
-// Atualizar parcelas
-async function updateInstallments(paymentMethod, bin) {
-    try {
-        const installments = await mp.getInstallments({
-            amount: document.getElementById('transactionAmount').value,
-            bin,
-            paymentTypeId: 'credit_card'
-        });
-        const installmentOptions = installments[0].payer_costs;
-        const installmentOptionsKeys = { label: 'recommended_message', value: 'installments' };
-        const installmentsElement = document.getElementById('form-checkout__installments');
-        createSelectOptions(installmentsElement, installmentOptions, installmentOptionsKeys);
-    } catch (error) {
-        console.error('Erro ao obter parcelas:', error);
-    }
-}
-
-// Criar token do cartão
-async function createCardToken(event) {
-    event.preventDefault();
-
-    try {
-        console.log('Iniciando criação do token do cartão...');
-
-        const tokenElement = document.getElementById('token');
-        const cardholderName = document.getElementById('form-checkout__cardholderName').value;
-        const identificationType = document.getElementById('form-checkout__identificationType').value;
-        const identificationNumber = document.getElementById('form-checkout__identificationNumber').value;
-
-        console.log('Dados para token:', {
-            cardholderName,
-            identificationType,
-            identificationNumber
-        });
-
-        if (!mp) {
-            throw new Error('Mercado Pago não foi inicializado');
-        }
-
-        const token = await mp.fields.createCardToken({
-            cardholderName,
-            identificationType,
-            identificationNumber,
-        });
-
-        console.log('Token criado:', token);
-
-        if (!token || !token.id) {
-            throw new Error('Token não foi gerado corretamente');
-        }
-
-        tokenElement.value = token.id;
-        console.log('Token definido no campo oculto:', token.id);
-        console.log('Verificação imediata - valor no campo:', document.getElementById('token').value);
-
-        // Pequena pausa para garantir que o DOM foi atualizado
-        await new Promise(resolve => setTimeout(resolve, 100));
-        console.log('Após pausa - valor no campo:', document.getElementById('token').value);
-
-        // Verificar novamente se o token está no campo
-        if (!document.getElementById('token').value) {
-            throw new Error('Token não foi definido corretamente no campo oculto');
-        }
-
-        // Enviar formulário - método alternativo
-        const form = document.getElementById('form-checkout');
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
-
-        console.log('FormData original:', Object.fromEntries(formData));
-
-        // Adicionar campos que podem não estar no FormData
-        data.token = tokenElement.value;
-        data.paymentMethodId = document.getElementById('paymentMethodId').value;
-        data.transactionAmount = document.getElementById('transactionAmount').value;
-
-        console.log('Dados finais a serem enviados:', data);
-        console.log('Token no data:', data.token);
-        console.log('Token no campo oculto:', tokenElement.value);
-
-        // Verificar se o token está presente
-        if (!data.token) {
-            throw new Error('Token não foi definido no formulário');
-        }
-
-        // Verificar se paymentMethodId está definido
-        if (!data.paymentMethodId) {
-            throw new Error('Método de pagamento não foi detectado. Digite o número completo do cartão.');
-        }
-
-        // Verificar se transactionAmount está definido
-        if (!data.transactionAmount || data.transactionAmount === '0.00') {
-            throw new Error('Valor da transação não foi definido. Calcule o orçamento primeiro.');
-        }
-
-        // Verificar se cardholderName está definido
-        if (!data.cardholderName) {
-            throw new Error('Nome do titular do cartão não foi preenchido.');
-        }
-       
-        console.log("DADOS ENVIADOS:", data);
-       
-        const response = await fetch(`${API_URL}/process_payment`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        console.log('Resposta do servidor:', response.status);
-
-        const result = await response.json();
-        console.log('Resultado:', result);
-
-        if (result.success) {
-            alert('Pagamento processado com sucesso! Status: ' + result.status);
-            // Redirecionar ou mostrar confirmação
         } else {
-            alert('Erro no pagamento: ' + result.erro + '\n' + (result.detalhes || ''));
+
+            mostrarPagina(
+                'inicio'
+            );
+
         }
-    } catch (e) {
-        console.error('Erro ao criar token do cartão:', e);
-        alert('Erro ao processar pagamento: ' + (e.message || e || 'Erro desconhecido'));
+
+
+        // --------------------------------------------------
+        // CALCULAR TOTAL INICIAL
+        // --------------------------------------------------
+
+        calcularTotal();
+
+
+        // --------------------------------------------------
+        // LOADER
+        // --------------------------------------------------
+
+        const pageLoader =
+            document.getElementById(
+                'page-loader'
+            );
+
+
+        if (pageLoader) {
+
+            setTimeout(
+                () => {
+
+                    pageLoader.classList.add(
+                        'hidden'
+                    );
+
+                },
+                500
+            );
+
+        }
+
     }
-}
+);
 
-// Processar Pix
-async function processPixPayment(event) {
-    event.preventDefault();
 
-    try {
-        const form = document.getElementById('form-checkout-pix');
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
+// ======================================================
+// ATUALIZAR PÁGINA QUANDO VOLTAR
+// ======================================================
 
-        const response = await fetch(`${API_URL}/process_payment_pix`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
+window.addEventListener(
+    'popstate',
+    () => {
 
-        const result = await response.json();
+        const hash =
+            window.location.hash;
 
-        if (result.success) {
-            // Mostrar QR Code e código Pix
-            document.getElementById('pix-result').style.display = 'block';
 
-            if (result.qrCodeBase64) {
-                document.getElementById('qr-code-container').innerHTML = `<img src="data:image/jpeg;base64,${result.qrCodeBase64}" alt="QR Code Pix">`;
-            }
+        if (
+            hash &&
+            document.getElementById(
+                hash.substring(1)
+            )
+        ) {
 
-            document.getElementById('copiar').value = result.qrCode;
+            mostrarPagina(
+                hash.substring(1)
+            );
 
-            alert('Pix gerado com sucesso!');
         } else {
-            alert('Erro ao gerar Pix: ' + result.erro);
+
+            mostrarPagina(
+                'inicio'
+            );
+
         }
-    } catch (e) {
-        console.error('Erro ao processar Pix:', e);
-        alert('Erro ao processar Pix: ' + (e.message || e || 'Erro desconhecido'));
+
     }
-}
-
-// Processar Boleto
-async function processBoletoPayment(event) {
-    event.preventDefault();
-
-    try {
-        const form = document.getElementById('form-checkout-boleto');
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
-
-        const response = await fetch(`${API_URL}/process_payment_boleto`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            // Mostrar link do boleto
-            document.getElementById('boleto-result').style.display = 'block';
-            document.getElementById('boleto-link').href = result.ticketUrl;
-
-            alert('Boleto gerado com sucesso!');
-        } else {
-            alert('Erro ao gerar boleto: ' + result.erro);
-        }
-    } catch (e) {
-        console.error('Erro ao processar boleto:', e);
-        alert('Erro ao processar boleto: ' + (e.message || e || 'Erro desconhecido'));
-    }
-}
-
-// Copiar código Pix
-function copyPixCode() {
-    const copyText = document.getElementById('copiar');
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    document.execCommand('copy');
-    alert('Código Pix copiado!');
-}
-
-// Testar criação do token
-async function testTokenCreation() {
-    try {
-        console.log('Testando criação do token...');
-
-        if (!mp) {
-            alert('Mercado Pago não foi inicializado');
-            return;
-        }
-
-        const cardholderName = document.getElementById('form-checkout__cardholderName').value;
-        const identificationType = document.getElementById('form-checkout__identificationType').value;
-        const identificationNumber = document.getElementById('form-checkout__identificationNumber').value;
-        const paymentMethodId = document.getElementById('paymentMethodId').value;
-
-        console.log('Dados para teste:', {
-            cardholderName,
-            identificationType,
-            identificationNumber,
-            paymentMethodId
-        });
-
-        if (!paymentMethodId) {
-            alert('ATENÇÃO: Método de pagamento não detectado!\n\nDigite o número completo do cartão primeiro (pelo menos 6 dígitos) para que o sistema detecte a bandeira.');
-            return;
-        }
-
-        const token = await mp.fields.createCardToken({
-            cardholderName,
-            identificationType,
-            identificationNumber,
-        });
-
-        console.log('Token de teste criado:', token);
-
-        if (token && token.id) {
-            alert('Token criado com sucesso!\nToken ID: ' + token.id + '\nMétodo: ' + paymentMethodId);
-        } else {
-            alert('Token não foi criado corretamente');
-        }
-
-    } catch (e) {
-        console.error('Erro no teste do token:', e);
-        alert('Erro no teste: ' + (e.message || e || 'Erro desconhecido'));
-    }
-}
-
-// Modificar função pagarAgora para mostrar métodos de pagamento
-function pagarAgora() {
-    const total = calcularTotal();
-    console.log('Total calculado:', total);
-
-    if (total <= 0) {
-        alert('Selecione pelo menos um serviço!');
-        return;
-    }
-
-    // Atualizar valores nos formulários
-    document.getElementById('transactionAmount').value = total;
-    document.getElementById('transactionAmount-pix').value = total;
-    document.getElementById('transactionAmount-boleto').value = total;
-
-    console.log('Valor definido nos formulários:', total);
-
-    // Mostrar seção de métodos de pagamento
-    const paymentMethods = document.getElementById('payment-methods');
-    paymentMethods.classList.remove('hidden');
-    paymentMethods.scrollIntoView({ behavior: 'smooth' });
-}
-
-// Inicializar Mercado Pago quando DOM carregar
-document.addEventListener("DOMContentLoaded", () => {
-    // Código existente...
-
-    // Inicializar Mercado Pago
-    initMercadoPago();
-
-    // Adicionar event listeners para formulários
-    document.getElementById('form-checkout').addEventListener('submit', createCardToken);
-    document.getElementById('form-checkout-pix').addEventListener('submit', processPixPayment);
-    document.getElementById('form-checkout-boleto').addEventListener('submit', processBoletoPayment);
-});
+);
