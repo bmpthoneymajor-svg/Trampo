@@ -1084,3 +1084,38 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
 });
+window.pagarAgora = function () {
+    const totalElement = document.getElementById('total');
+
+    if (!totalElement) {
+        console.error('Elemento #total não encontrado.');
+        return;
+    }
+
+    const total = Number(
+        totalElement.textContent
+            .replace(',', '.')
+            .replace(/[^\d.-]/g, '')
+    );
+
+    if (!Number.isFinite(total) || total <= 0) {
+        alert('Selecione pelo menos um serviço e informe um preço válido.');
+        return;
+    }
+
+    const paymentMethods = document.getElementById('payment-methods');
+
+    if (!paymentMethods) {
+        console.error('Elemento #payment-methods não encontrado.');
+        return;
+    }
+
+    paymentMethods.classList.remove('hidden');
+
+    paymentMethods.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+    });
+
+    inicializarPayPal(total);
+};
