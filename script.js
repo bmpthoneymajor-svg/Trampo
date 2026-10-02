@@ -907,3 +907,180 @@ async function onPayPalLoaded() {
         }
     }
 }
+// ======================================================
+// NAVEGAÇÃO ENTRE PÁGINAS / SEÇÕES
+// ======================================================
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    const links =
+        document.querySelectorAll(
+            '.site-header nav a[href^="#"]'
+        );
+
+    const paginas =
+        document.querySelectorAll(
+            'main .page'
+        );
+
+
+    function mostrarPagina(id) {
+
+        const pagina =
+            document.getElementById(id);
+
+        if (!pagina) {
+            return;
+        }
+
+
+        // Esconde todas as páginas
+        paginas.forEach(function (item) {
+
+            item.classList.remove('active');
+
+        });
+
+
+        // Mostra a página selecionada
+        pagina.classList.add('active');
+
+
+        // Atualiza o endereço sem recarregar
+        if (
+            window.location.hash !== '#' + id
+        ) {
+
+            history.pushState(
+                null,
+                '',
+                '#' + id
+            );
+
+        }
+
+
+        // Volta para o topo
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+
+    }
+
+
+    // Clique no menu
+    links.forEach(function (link) {
+
+        link.addEventListener(
+            'click',
+            function (event) {
+
+                event.preventDefault();
+
+                const id =
+                    link.getAttribute('href')
+                        .replace('#', '');
+
+                mostrarPagina(id);
+
+            }
+        );
+
+    });
+
+
+    // Botões internos que usam #orcamento,
+    // #portfolio, #sobre etc.
+    document
+        .querySelectorAll(
+            'a[href^="#"]'
+        )
+        .forEach(function (link) {
+
+            link.addEventListener(
+                'click',
+                function (event) {
+
+                    const href =
+                        link.getAttribute('href');
+
+                    if (
+                        !href ||
+                        href === '#'
+                    ) {
+                        return;
+                    }
+
+
+                    const id =
+                        href.substring(1);
+
+                    const pagina =
+                        document.getElementById(id);
+
+                    if (!pagina) {
+                        return;
+                    }
+
+
+                    event.preventDefault();
+
+                    mostrarPagina(id);
+
+                }
+            );
+
+        });
+
+
+    // --------------------------------------------------
+    // ABRIR PÁGINA PELO HASH
+    // --------------------------------------------------
+
+    function abrirPaginaPeloHash() {
+
+        let id =
+            window.location.hash
+                .replace('#', '');
+
+
+        if (!id) {
+            id = 'inicio';
+        }
+
+
+        const pagina =
+            document.getElementById(id);
+
+
+        if (pagina) {
+
+            paginas.forEach(function (item) {
+
+                item.classList.remove(
+                    'active'
+                );
+
+            });
+
+            pagina.classList.add(
+                'active'
+            );
+
+        }
+
+    }
+
+
+    // Executa ao carregar
+    abrirPaginaPeloHash();
+
+
+    // Executa quando o hash mudar
+    window.addEventListener(
+        'hashchange',
+        abrirPaginaPeloHash
+    );
+
+});
