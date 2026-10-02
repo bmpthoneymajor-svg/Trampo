@@ -23,19 +23,107 @@ let ultimoTotal = 0;
 // SERVIÇOS SELECIONADOS
 // ======================================================
 
+function converterNumero(valor) {
+    if (valor === null || valor === undefined) {
+        return 0;
+    }
+
+    if (typeof valor === 'number') {
+        return Number.isFinite(valor) ? valor : 0;
+    }
+
+    let texto = String(valor).trim();
+
+    if (!texto) {
+        return 0;
+    }
+
+    // Remove moeda, espaços e caracteres que não fazem parte do número.
+    texto = texto
+        .replace(/R\$/gi, '')
+        .replace(/\s/g, '');
+
+    // Suporta:
+    // 150
+    // 150.50
+    // 150,50
+    // 1.500,50
+    // 1,500.50
+    if (texto.includes(',') && texto.includes('.')) {
+        if (texto.lastIndexOf(',') > texto.lastIndexOf('.')) {
+            texto = texto.replace(/\./g, '').replace(',', '.');
+        } else {
+            texto = texto.replace(/,/g, '');
+        }
+    } else if (texto.includes(',')) {
+        texto = texto.replace(',', '.');
+    }
+
+    texto = texto.replace(/[^\d.-]/g, '');
+
+    const numero = Number(texto);
+
+    return Number.isFinite(numero) ? numero : 0;
+}
+
+
+function obterValorCampo(elemento, padrao = 0) {
+    if (!elemento) {
+        return padrao;
+    }
+
+    // Primeiro tenta value, usado normalmente em input.
+    if (
+        typeof elemento.value !== 'undefined' &&
+        elemento.value !== ''
+    ) {
+        const numero = converterNumero(elemento.value);
+
+        if (numero !== 0 || String(elemento.value).trim() === '0') {
+            return numero;
+        }
+    }
+
+    // Depois tenta data-preco/data-value.
+    const dataPreco = elemento.dataset?.preco;
+
+    if (dataPreco !== undefined) {
+        return converterNumero(dataPreco);
+    }
+
+    const dataValue = elemento.dataset?.value;
+
+    if (dataValue !== undefined) {
+        return converterNumero(dataValue);
+    }
+
+    // Por último, usa o texto visível.
+    const texto = elemento.textContent?.trim();
+
+    if (texto) {
+        return converterNumero(texto);
+    }
+
+    return padrao;
+}
+
+
 function obterServicosSelecionados() {
     const servicos = [];
 
     document.querySelectorAll('.servico-row').forEach(row => {
 
-        const checkbox = row.querySelector('.servico-checkbox');
+        const checkbox =
+            row.querySelector('.servico-checkbox');
 
         if (!checkbox || !checkbox.checked) {
             return;
         }
 
         const nome =
-            row.querySelector('label')?.innerText.trim() || 'Serviço';
+            row.querySelector('label')?.innerText.trim() ||
+            row.querySelector('.servico-nome')?.innerText.trim() ||
+            'Serviço';
 
         const quantidadeInput =
             row.querySelector('.quantidade');
@@ -47,20 +135,26 @@ function obterServicosSelecionados() {
             row.querySelector('.observacao');
 
         const quantidade =
-            Number(quantidadeInput?.value || 1);
+            Math.max(
+                1,
+                obterValorCampo(quantidadeInput, 1)
+            );
 
         const preco =
-            Number(precoInput?.value || 0);
+            obterValorCampo(precoInput, 0);
 
         const observacao =
-            observacaoInput?.value.trim() || '';
+            observacaoInput?.value?.trim() || '';
 
         servicos.push({
             key: checkbox.dataset.key || '',
             nome,
             quantidade,
             preco,
-            observacao
+            observacao,
+            subtotal: Number(
+                (quantidade * preco).toFixed(2)
+            )
         });
     });
 
@@ -91,16 +185,21 @@ function calcularTotal() {
         const precoInput =
             row.querySelector('.preco');
 
-        const quantidade =
-            Number(quantidadeInput?.value || 0);
+        let quantidade =
+            obterValorCampo(quantidadeInput, 1);
 
         const preco =
-            Number(precoInput?.value || 0);
+            obterValorCampo(precoInput, 0);
 
         if (
-            Number.isFinite(quantidade) &&
+            !Number.isFinite(quantidade) ||
+            quantidade <= 0
+        ) {
+            quantidade = 1;
+        }
+
+        if (
             Number.isFinite(preco) &&
-            quantidade > 0 &&
             preco >= 0
         ) {
             total += quantidade * preco;
@@ -116,8 +215,25 @@ function calcularTotal() {
 
     if (totalElement) {
         totalElement.textContent =
-            total.toFixed(2);
+            total.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
     }
+
+    // Atualiza também elementos que eventualmente mostrem
+    // o total do orçamento.
+    document
+        .querySelectorAll(
+            '[data-total-orcamento], .total-orcamento'
+        )
+        .forEach(elemento => {
+            elemento.textContent =
+                `R$ ${total.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}`;
+        });
 
     return total;
 }
@@ -151,6 +267,14 @@ document.addEventListener('change', function (event) {
 
 });
 
+
+// ======================================================
+// INICIALIZAR CÁLCULO QUANDO A PÁGINA CARREGAR
+// ======================================================
+
+document.addEventListener('DOMContentLoaded', function () {
+    calcularTotal();
+});
 
 // ======================================================
 // LOADING PAYPAL
@@ -333,7 +457,10 @@ async function criarPedidoPayPal(valor) {
         data.id
     );
 
-    return data.id;
+    // PayPal JS SDK v6 espera um objeto com orderId.
+    return {
+        orderId: data.id
+    };
 }
 
 
@@ -491,7 +618,7 @@ async function inicializarPayPal() {
 
         // --------------------------------------------------
         // VERIFICAR ELEGIBILIDADE
-        // --------------------------------------------------
+                // --------------------------------------------------
 
         const eligibility =
             await paypalSdk.findEligibleMethods({
@@ -640,11 +767,11 @@ async function inicializarPayPal() {
                     mostrarLoadingPayPal();
 
 
-                    // Criar pedido no backend
+                    // Criar pedido no backend.
+                    // A Promise é passada diretamente ao start()
+                    // para preservar o fluxo do clique do PayPal.
                     const createOrderPromise =
-                        criarPedidoPayPal(
-                            totalAtual
-                        );
+                        criarPedidoPayPal(totalAtual);
 
 
                     // Abrir checkout
@@ -727,13 +854,24 @@ async function inicializarPayPal() {
 
 window.pagarAgora = async function () {
 
+    const servicos = obterServicosSelecionados();
+
+    if (!servicos.length) {
+
+        alert(
+            'Selecione pelo menos um serviço antes de finalizar o orçamento.'
+        );
+
+        return;
+    }
+
     const total =
         calcularTotal();
 
-    if (!total || total <= 0) {
+    if (!Number.isFinite(total) || total <= 0) {
 
         alert(
-            'Selecione pelo menos um serviço e informe um preço válido.'
+            'Os serviços selecionados não possuem um preço válido.'
         );
 
         return;
@@ -792,7 +930,10 @@ window.pagarAgora = async function () {
             <p class="payment-note">
                 Total do orçamento:
                 <strong>
-                    R$ ${total.toFixed(2).replace('.', ',')}
+                    R$ ${total.toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })}
                 </strong>
             </p>
 
